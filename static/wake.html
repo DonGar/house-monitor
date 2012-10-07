@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <link rel="icon" type="image/jpg" href="favicon.ico">
+  <title>Wake</title>
+  
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=700">
+  
+  <link rel="stylesheet" type="text/css" media="screen,print" href="Site.css"> 
+  
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  
+  <!-- {% block header_javascript %} -->
+  <script type="text/javascript">    
+  </script>
+  <!-- {% endblock %} -->
+</head>
+
+<body>
+  <div id="content_background" style="width: 700px; ">
+    <div id="content_borders">
+      <header>
+        <!-- {% block nav_bar %} -->
+        <nav id="navigation_bar">
+          <ul class="navbar-list">
+            <li><a href="index.html">Welcome</a></li>
+            <li><a href="status.html">Status</a></li>
+            <li class="current-page"><a href="wake.html">Wake</a></li>
+          </ul>
+        </nav>
+        
+        <div id="site_title">
+         <p class="Header">House</p>
+        </div>
+        <!-- {% endblock %} -->
+        
+        <!-- {% block photo %} -->
+        <div id="site_photo" style="text-align: center; margin-bottom: 10px">
+          <img src="/house.png" alt="Side View of House" height="227" width="398" style="border: solid 1px" />
+        </div>
+        <!-- {% endblock %} -->
+      </header>
+  
+      <!-- {% block body %} -->
+      <form action="wake_handler" method="post">
+        <input type="radio" name="target" value="00:25:22:CF:01:31" id="vinge" />
+        <label for="vinge">Vinge</label><br />
+        <input type="submit" value="Wake" />
+      </form>
+      <!--  {% endblock %} -->
+  
+    </div>
+  </div>
+</body>
+</html>
