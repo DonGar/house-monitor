@@ -4,17 +4,17 @@
 <head>
   <link rel="icon" type="image/jpg" href="favicon.ico">
   <title>Welcome</title>
-  
+
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=700">
-  
-  <link rel="stylesheet" type="text/css" media="screen,print" href="Site.css"> 
-  
+
+  <link rel="stylesheet" type="text/css" media="screen,print" href="Site.css">
+
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-  
+
   <!-- {% block header_javascript %} -->
-  <script type="text/javascript">    
-  
+  <script type="text/javascript">
+
     function updateCamera() {
       time = new Date().getTime();
       $('.camera').each(function() {
@@ -22,11 +22,11 @@
         $(this).attr('src', url);
       })
     }
-  
+
     $(document).ready(function() {
       setInterval('updateCamera()',2000);
     });
-  
+
   </script>
   <!-- {% endblock %} -->
 </head>
@@ -43,19 +43,19 @@
             <li><a href="wake.html">Wake</a></li>
           </ul>
         </nav>
-        
+
         <div id="site_title">
          <p class="Header">House</p>
         </div>
         <!-- {% endblock %} -->
-        
+
         <!-- {% block photo %} -->
         <div id="site_photo" style="text-align: center; margin-bottom: 10px">
           <img src="/house.png" alt="Side View of House" height="227" width="398" style="border: solid 1px" />
         </div>
         <!-- {% endblock %} -->
       </header>
-  
+
       <!-- {% block body %} -->
       <div id="links" style="margin-bottom: 10px;">
         <div class="Three_Column" id="column-one">
@@ -77,7 +77,7 @@
             </ul>
           </div>
         </div>
-      
+
         <div class="Three_Column" id="column-two">
           <div class="Links_List">
             <p>Services</p>
@@ -91,7 +91,7 @@
             </ul>
           </div>
         </div>
-      
+
         <div class="Three_Column" id="column-three">
           <div class="Links_List">
             <p>Other</p>
@@ -100,15 +100,18 @@
                 <a href="http://don.garrett.name/" target="_blank">don.garrett.name</a>
               </li>
               <li>
-                <a href="/deliciouslibrary/" target="_blank">Delicious Library</a>
+                <a href="http://www/deliciouslibrary/" target="_blank">Delicious Library</a>
+              </li>
+              <li>
+                <a href="http://www/MediaWiki/" target="_blank">Wiki</a>
               </li>
             </ul>
           </div>
         </div>
-        
+
         <div class="Clear"></div>
       </div>
-      
+
       <div id="camera_feeds">
         <a href="http://guest@kitchen.dongar.bgb.cc/" target="_blank" style="float: left">
           <img id="kitchen_live" class="camera" src="http://kitchen/snapshot.cgi?user=guest&pwd=&t=" width="320" height="240">
@@ -117,9 +120,9 @@
           <img id="garage_live" class="camera" src="http://garage/snapshot.cgi?user=guest&pwd=&t=" width="320" height="240">
         </a>
         <div class="Clear"></div>
-      </div>      
+      </div>
       <!--  {% endblock %} -->
-  
+
     </div>
   </div>
 </body>
