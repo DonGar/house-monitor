@@ -27,10 +27,10 @@
           <ul class="navbar-list">
             <li><a href="index.html">Welcome</a></li>
             <li><a href="status.html">Status</a></li>
-            <li class="current-page"><a href="wake.html">Wake</a></li>
+            <li class="current-page"><a href="manage.html">Manage</a></li>
           </ul>
         </nav>
-        
+
         <div id="site_title">
          <p class="Header">House</p>
         </div>
@@ -44,6 +44,10 @@
       </header>
   
       <!-- {% block body %} -->
+      <div><a href="/restart">/restart</a></div>
+
+
+      <div>/wake_handler - target "00:25:22:CF:01:31"</div>
       <form action="wake_handler" method="post">
         <input type="radio" name="target" value="00:25:22:CF:01:31" id="vinge" />
         <label for="vinge">Vinge</label><br />

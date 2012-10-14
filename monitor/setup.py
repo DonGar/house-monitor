@@ -21,5 +21,6 @@ def setup():
   root.putChild("doorbell", web_resources.Doorbell(status_state))
   root.putChild("status_handler", web_resources.Status(status_state))
   root.putChild("wake_handler", web_resources.Wake())
+  root.putChild("restart", web_resources.Restart())
 
   reactor.listenTCP(8080, Site(root))

@@ -2,4 +2,4 @@
 
 cd `dirname $0`
 source bin/activate
-python server.py 2&>1
+python server.py 2>&1
