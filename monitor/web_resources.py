@@ -72,6 +72,9 @@ class Status(Resource):
 class Wake(Resource):
   isLeaf = True
   
+  def render_GET(self, request):
+    return self.render_POST(request)
+
   def render_POST(self, request):
     for mac in request.args["target"]:
       print "received request for: %s" % mac

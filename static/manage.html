@@ -44,15 +44,22 @@
       </header>
   
       <!-- {% block body %} -->
-      <div><a href="/restart">/restart</a></div>
+      <div>
+        <p class="Header">Server</p>
+
+        <div><a href="/restart">/restart</a></div>
+        <div><a href="/doorbell">/doorbell</a></div>
+      </div>
 
 
-      <div>/wake_handler - target "00:25:22:CF:01:31"</div>
-      <form action="wake_handler" method="post">
-        <input type="radio" name="target" value="00:25:22:CF:01:31" id="vinge" />
-        <label for="vinge">Vinge</label><br />
-        <input type="submit" value="Wake" />
-      </form>
+      <div>
+        <p class="Header">Vinge</p>
+
+        <div><a href="/wake_handler?target=00:25:22:CF:01:31">/wake_handler?value=00:25:22:CF:01:31 (Vinge)</a></div>
+        <div><a href="http://vinge/sleep">http://vinge/sleep</a></div>
+        <div><a href="http://vinge/shutdown">http://vinge/shutdown</a></div>
+        <div><a href="http://vinge/restart">http://vinge/restart</a></div>
+        <div><a href="http://vinge/test">http://vinge/test</a></div>
       <!--  {% endblock %} -->
   
     </div>
