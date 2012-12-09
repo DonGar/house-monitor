@@ -5,4 +5,4 @@ cd `dirname $0`
 python virtualenv.py .
 
 source bin/activate
-pip install twisted
+pip install --upgrade twisted pyephem pytz
