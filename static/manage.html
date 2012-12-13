@@ -4,18 +4,13 @@
 <head>
   <link rel="icon" type="image/jpg" href="favicon.ico">
   <title>Wake</title>
-  
+
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=700">
-  
-  <link rel="stylesheet" type="text/css" media="screen,print" href="Site.css"> 
-  
+
+  <link rel="stylesheet" type="text/css" media="screen,print" href="Site.css">
+
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-  
-  <!-- {% block header_javascript %} -->
-  <script type="text/javascript">    
-  </script>
-  <!-- {% endblock %} -->
 </head>
 
 <body>
@@ -35,33 +30,49 @@
          <p class="Header">House</p>
         </div>
         <!-- {% endblock %} -->
-        
+
         <!-- {% block photo %} -->
         <div id="site_photo" style="text-align: center; margin-bottom: 10px">
           <img src="/house.png" alt="Side View of House" height="227" width="398" style="border: solid 1px" />
         </div>
         <!-- {% endblock %} -->
       </header>
-  
+
       <!-- {% block body %} -->
+      <div class="WorkingBlock">
+        <div style="float: left;" id='working_url'>Idle</div>
+        <div style="float: right;" id='working_result'></div>
+        <div class="Clear"></div>
+      </div>
+
       <div>
         <p class="Header">Server</p>
 
-        <div><a href="/restart">/restart</a></div>
-        <div><a href="/doorbell">/doorbell</a></div>
+        <div class="Redirect">/restart</div>
+        <div class="Redirect">/doorbell</div>
       </div>
-
 
       <div>
         <p class="Header">Vinge</p>
 
-        <div><a href="/wake_handler?target=00:25:22:CF:01:31">/wake_handler?value=00:25:22:CF:01:31 (Vinge)</a></div>
-        <div><a href="http://vinge/sleep">http://vinge/sleep</a></div>
-        <div><a href="http://vinge/shutdown">http://vinge/shutdown</a></div>
-        <div><a href="http://vinge/reboot">http://vinge/reboot</a></div>
-        <div><a href="http://vinge/test">http://vinge/test</a></div>
+        <div class="Redirect">/wake_handler?target=00:25:22:CF:01:31</div>
+        <div class="Redirect">http://vinge/sleep</div>
+        <div class="Redirect">http://vinge/shutdown</div>
+        <div class="Redirect">http://vinge/reboot</div>
+        <div class="Redirect">http://vinge/test</div>
       <!--  {% endblock %} -->
-  
+
+
+  <script type="text/javascript">
+    $(".Redirect").click(function() {
+      url = $(this).text();
+      $("#working_url").text(url);
+      $("#working_result").text('...');
+      $("#working_result").load(url);
+    });
+  </script>
+
+
     </div>
   </div>
 </body>

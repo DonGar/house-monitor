@@ -46,21 +46,21 @@ class Doorbell(Resource):
 
 class Status(Resource):
   isLeaf = True
-  
+
   def __init__(self, status):
     self.status = status
-  
+
   def render_GET(self, request):
     print "Request: %s" % request.uri
-  
+
     # args['revision'] -> ['123'] if present at all
     revision = int(request.args.get('revision', [0])[0])
-  
+
     notification = self.status.createNotification(revision)
     notification.addCallback(self.send_update, request)
     request.notifyFinish().addErrback(notification.errback)
     return server.NOT_DONE_YET
-  
+
   def send_update(self, status, request):
     # TODO: if the request is already closed, exit cleanly
     request.setHeader("content-type", "application/json")
@@ -71,7 +71,7 @@ class Status(Resource):
 
 class Wake(Resource):
   isLeaf = True
-  
+
   def render_GET(self, request):
     return self.render_POST(request)
 
@@ -79,12 +79,12 @@ class Wake(Resource):
     for mac in request.args["target"]:
       print "received request for: %s" % mac
       wake_on_lan(mac)
-    return redirectTo(request.getHeader("Referer"), request)
+    return "Success"
 
 
 class Restart(Resource):
   isLeaf = True
 
   def render_GET(self, request):
-    reactor.stop()  
+    reactor.stop()
     return "Success"
