@@ -7,8 +7,13 @@ from datetime import timedelta
 
 import pytz
 
+from twisted.internet import task
+from twisted.internet import reactor
+
+
 UTC_TZ = pytz.utc
 PACIFIC_TZ = pytz.timezone('US/Pacific')
+
 
 def utc_to_localtime(datetime_in):
   """Convert a naive datetime from utc to naive localtime"""
@@ -78,5 +83,24 @@ def next_daily(utc_now, time=time(12, 0, 0)):
   return _next_daily_recursive(utc_now, time)
 
 
+def call_repeating(next_call, work, *args, **kwargs):
+  """Call a function repeatedly.
 
+  Args:
+    next_call: A function which accepts a datetime for 'now', and returns
+               the next time at which to run.
+    work: A function to be called at repeating intervals.
+          Passed *args, **kwargs.
+  """
+
+  def do_work_repeating():
+    work(*args, **kwargs)
+    now = datetime.utcnow()
+    delay = datetime_to_seconds_delay(now, next_call(now))
+    task.deferLater(reactor, delay, do_work_repeating)
+
+  # Setup initial call to do_work_repeating
+  now = datetime.utcnow()
+  delay = datetime_to_seconds_delay(now, next_call(now))
+  task.deferLater(reactor, delay, do_work_repeating)
 
