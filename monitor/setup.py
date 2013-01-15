@@ -90,7 +90,8 @@ def setup():
     setup_camera_events(status_state, download_dir)
 
   # Setup pings for various machines
-  up.setup(status_state, ['tv', 'vinge', 'stross'])
+  up.setup(status_state, ['vinge', 'niven', 'stross', 'stumpy',
+                          'tv', 'pi', 'bone'])
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
