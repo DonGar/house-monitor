@@ -4,6 +4,7 @@ import ephem
 from datetime import datetime
 from datetime import time
 from datetime import timedelta
+import traceback
 
 import pytz
 
@@ -94,7 +95,13 @@ def call_repeating(next_call, work, *args, **kwargs):
   """
 
   def do_work_repeating():
-    work(*args, **kwargs)
+    # Don't let an error doing the work prevent the job from repeating.
+    try:
+      work(*args, **kwargs)
+    except Exception as e:
+      msg = traceback.format_exc()
+      print msg
+
     now = datetime.utcnow()
     delay = datetime_to_seconds_delay(now, next_call(now))
     task.deferLater(reactor, delay, do_work_repeating)
