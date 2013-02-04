@@ -60,13 +60,6 @@ def setup_camera_events(status_state, download_dir):
   repeat.call_repeating(repeat.next_sunset, getPage,
                         garage_ir_on, postdata=camera_auth)
 
-  # Every five minute call into download_file to get a kitchen snapshot
-  repeat.call_repeating(lambda utc_now: repeat.next_interval(utc_now,
-                                                             interval_minutes=5),
-                        download_file,
-                        download_dir, "front_door_tracker.%d.jpg",
-                        'http://kitchen/snapshot.cgi?user=guest&pwd=')
-
   # At noon every day, take a snapshot from both the kitchen and garage cameras
   repeat.call_repeating(repeat.next_daily,
                         download_file,
