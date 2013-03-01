@@ -20,69 +20,7 @@ from monitor import web_resources
 BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
 def parse_config_file():
-  """Parse a config file in .json format.
-
-  {
-    // Directory in which downloaded files are saved.
-    "downloads": "<directory_name>",
-
-    // Local timezone on the server. Used for url download times.
-    "timezone": "US/Pacific",
-
-    // Latitude/Longitude of the server. Used to find sunset/sunrise times.
-    "latitude": "37.3861",
-    "longitude": "-122.0839",
-
-    // Definitions of camera feeds to display on the website.
-    "cameras": [
-      {
-        "name": "<name>",
-        "address": "<snapshot_url>",
-      },
-    ],
-
-    // URLs to download on a regular base.
-    // interval:
-    //   "daily" is the only value supported currently.
-    //
-    // time:
-    //   "sunset", "sunrise", and "12:00:00" are currently supported.
-    //   12:00:00 will be handled based on the local timezone.
-    //
-    // url:
-    //   url to request. The results are discarded if download_name not
-    //   present.
-    //
-    // download_name: (optional)
-    //   filename to save the downloaded results into. It should contain a
-    //   '%d' which will be replaced with a timestamp at each download.
-    //   The downloaded file will be stored in the downloads directory
-    //   specified above.
-
-    "urls": [
-      {
-        "interval": "daily",
-        "time": "sunset",
-        "url": "http://kitchen/decoder_control.cgi?user=admin&pwd=oOcSR0kd&command=95",
-        "comment": "Enable Kitchen camera's IR at Sunset.",
-      },
-      {
-        "interval": "daily",
-        "time": "12:00:00",
-        "url": "http://kitchen/snapshot.cgi?user=guest&pwd=",
-        "download_name": "daily.%d.jpg",
-        "comment": "Take a snapshot of the front door at noon.",
-      },
-    ],
-
-    "monitor": {
-      "ping": [
-        "<hostname>",
-        ...
-      ],
-    }
-  }
-  """
+  """Parse a config file in .json format."""
   config_file = os.path.join(BASE_DIR, 'config.json')
   print 'Reading config %s' % config_file
   if os.path.exists(config_file):
@@ -150,15 +88,11 @@ def setup_url_events(config):
 def setup():
   # Create our global shared status
   status_state = status.Status()
-
   config = parse_config_file()
-
-  print 'config %s' % config
 
   if config:
     setup_url_events(config)
     up.setup(status_state, config['monitor']['ping'])
-
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
