@@ -37,51 +37,67 @@ def datetime_to_seconds_delay(utc_now, future):
   return delta.total_seconds()
 
 
-def _mountainview_observer(utc_now):
-  """Setup ephem.Observer for Mountain View, CA, now"""
+def next_sunrise(latitude, longitude):
+  """Next sunrise (today or tomorrow)"""
+
   obs = ephem.Observer()
-  obs.lat = '37.3861'
-  obs.long= '-122.0839'
-  obs.date = utc_now
-  return obs
+  obs.lat = latitude
+  obs.long = longitude
+
+  while True:
+    utc_now = datetime.utcnow()
+    obs.date = utc_now
+    result = obs.next_rising(ephem.Sun()).datetime()
+    yield datetime_to_seconds_delay(utc_now, result)
 
 
-def next_sunrise(utc_now):
-  """ Next sunrise (today or tomorrow)"""
-  obs = _mountainview_observer(utc_now)
-  return obs.next_rising(ephem.Sun()).datetime()
+def next_sunset(latitude, longitude):
+  """Next sunset (today or tomorrow)"""
+
+  obs = ephem.Observer()
+  obs.lat = latitude
+  obs.long = longitude
+
+  while True:
+    utc_now = datetime.utcnow()
+    obs.date = utc_now
+    result = obs.next_setting(ephem.Sun()).datetime()
+    yield datetime_to_seconds_delay(utc_now, result)
 
 
-def next_sunset(utc_now):
-  """ Next sunset (today or tomorrow)"""
-  obs = _mountainview_observer(utc_now)
-  return obs.next_setting(ephem.Sun()).datetime()
-
-
-def next_interval(utc_now, interval_minutes=5):
+def next_interval(interval_minutes=5):
   """Return the next even interval in a naive utc timestamp."""
-  unrounded_time = utc_now + timedelta(minutes=interval_minutes)
-  rounded_minutes = unrounded_time.minute - (unrounded_time.minute %
-                                             interval_minutes)
-  return unrounded_time.replace(minute=rounded_minutes,
-                                second=0,
-                                microsecond=0)
+
+  while True:
+    utc_now = datetime.utcnow()
+
+    unrounded_time = utc_now + timedelta(minutes=interval_minutes)
+    rounded_minutes = unrounded_time.minute - (unrounded_time.minute %
+                                               interval_minutes)
+    result = unrounded_time.replace(minute=rounded_minutes,
+                                    second=0,
+                                    microsecond=0)
+    yield datetime_to_seconds_delay(utc_now, result)
 
 
-def next_daily(utc_now, time=time(12, 0, 0)):
+def next_daily(daytime=time(12, 0, 0)):
   """Return the next noon (localtime) in a naive utc timestamp."""
 
-  def _next_daily_recursive(utc_in, time):
-    local_in = utc_to_localtime(utc_in)
-    local_time = datetime.combine(local_in.date(), time)
-    utc_time = localtime_to_utc(local_time)
+  while True:
+    utc_now = datetime.utcnow()
 
-    if utc_time > utc_now:
-      return utc_time
+    def _next_daily_recursive(utc_in):
+      local_in = utc_to_localtime(utc_in)
+      local_time = datetime.combine(local_in.date(), daytime)
+      utc_time = localtime_to_utc(local_time)
 
-    return _next_daily_recursive(utc_in + timedelta(hours=12), time)
+      if utc_time > utc_now:
+        return utc_time
 
-  return _next_daily_recursive(utc_now, time)
+      return _next_daily_recursive(utc_in + timedelta(hours=12))
+
+    result = _next_daily_recursive(utc_now)
+    yield datetime_to_seconds_delay(utc_now, result)
 
 
 def call_repeating(next_call, work, *args, **kwargs):
@@ -102,12 +118,8 @@ def call_repeating(next_call, work, *args, **kwargs):
       msg = traceback.format_exc()
       print msg
 
-    now = datetime.utcnow()
-    delay = datetime_to_seconds_delay(now, next_call(now))
-    task.deferLater(reactor, delay, do_work_repeating)
+    task.deferLater(reactor, next(next_call), do_work_repeating)
 
   # Setup initial call to do_work_repeating
-  now = datetime.utcnow()
-  delay = datetime_to_seconds_delay(now, next_call(now))
-  task.deferLater(reactor, delay, do_work_repeating)
+  task.deferLater(reactor, next(next_call), do_work_repeating)
 

@@ -58,17 +58,18 @@ def setup_url_events(config):
   # Directory in which downloaded files are saved.
   download_dir = config['downloads']
   timezone = config['timezone']
-  latitude = config['latitude']
-  longitude = config['longitude']
+  latitude = float(config['latitude'])
+  longitude = float(config['longitude'])
 
   for request in config['requests']:
     if request['interval'] == 'daily':
       if request['time'] == 'sunset':
-        interval = repeat.next_sunset
+        interval = repeat.next_sunset(latitude, longitude)
       elif request['time'] == 'sunrise':
-        interval = repeat.next_sunrise
-      elif request['time'] == '12:00:00':
-        interval = repeat.next_daily
+        interval = repeat.next_sunrise(latitude, longitude)
+      elif 'time' in request:
+        hour, minute, second = [int(i) for i in request['time'].split(':')]
+        interval = repeat.next_daily(datetime.time(hour, minute, second))
       else:
         raise Exception('Unknown requests time %s.' % request['time'])
     else:
