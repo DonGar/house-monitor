@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import datetime
+import json
 import os
 import time
 import urllib
@@ -16,17 +17,91 @@ from monitor import status
 from monitor import up
 from monitor import web_resources
 
-def findDownloadDir():
-  result = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                            '..', '..',
-                            'Downloads'))
-  if os.path.exists(result):
-    return result
-  else:
-    return None
+BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
+def parse_config_file():
+  """Parse a config file in .json format.
 
-def download_file(download_dir, download_pattern, url, **kwargs):
+  {
+    // Directory in which downloaded files are saved.
+    "downloads": "<directory_name>",
+
+    // Local timezone on the server. Used for url download times.
+    "timezone": "US/Pacific",
+
+    // Latitude/Longitude of the server. Used to find sunset/sunrise times.
+    "latitude": "37.3861",
+    "longitude": "-122.0839",
+
+    // Definitions of camera feeds to display on the website.
+    "cameras": [
+      {
+        "name": "<name>",
+        "address": "<snapshot_url>",
+      },
+    ],
+
+    // URLs to download on a regular base.
+    // interval:
+    //   "daily" is the only value supported currently.
+    //
+    // time:
+    //   "sunset", "sunrise", and "12:00:00" are currently supported.
+    //   12:00:00 will be handled based on the local timezone.
+    //
+    // url:
+    //   url to request. The results are discarded if download_name not
+    //   present.
+    //
+    // download_name: (optional)
+    //   filename to save the downloaded results into. It should contain a
+    //   '%d' which will be replaced with a timestamp at each download.
+    //   The downloaded file will be stored in the downloads directory
+    //   specified above.
+
+    "urls": [
+      {
+        "interval": "daily",
+        "time": "sunset",
+        "url": "http://kitchen/decoder_control.cgi?user=admin&pwd=oOcSR0kd&command=95",
+        "comment": "Enable Kitchen camera's IR at Sunset.",
+      },
+      {
+        "interval": "daily",
+        "time": "12:00:00",
+        "url": "http://kitchen/snapshot.cgi?user=guest&pwd=",
+        "download_name": "daily.%d.jpg",
+        "comment": "Take a snapshot of the front door at noon.",
+      },
+    ],
+
+    "monitor": {
+      "ping": [
+        "<hostname>",
+        ...
+      ],
+    }
+  }
+  """
+  config_file = os.path.join(BASE_DIR, 'config.json')
+  print 'Reading config %s' % config_file
+  if os.path.exists(config_file):
+    with open(config_file, 'r') as f:
+      return json.load(f)
+
+def get_page_wrapper(download_dir, download_pattern, url, **kwargs):
+  print "Started requet %s" % (url,)
+
+  def print_success(_):
+    print 'Downloaded %s.' % (url,)
+
+  def print_error(error):
+    print 'FAILED download %s: %s.' % (url, error)
+
+  d = getPage(url, **kwargs)
+  d.addCallbacks(print_success, print_error)
+
+def download_page_wrapper(download_dir, download_pattern, url, **kwargs):
   download_name = download_pattern % time.time()
   download_file = os.path.join(download_dir, download_name)
 
@@ -41,55 +116,53 @@ def download_file(download_dir, download_pattern, url, **kwargs):
   d = downloadPage(url, download_file, **kwargs)
   d.addCallbacks(print_success, print_error)
 
+def setup_url_events(config):
+  # Directory in which downloaded files are saved.
+  download_dir = config['downloads']
+  timezone = config['timezone']
+  latitude = config['latitude']
+  longitude = config['longitude']
 
-def setup_camera_events(status_state, download_dir):
-  camera_auth = urllib.urlencode({ 'user' : 'guest', 'pwd' : '' })
+  for request in config['requests']:
+    if request['interval'] == 'daily':
+      if request['time'] == 'sunset':
+        interval = repeat.next_sunset
+      elif request['time'] == 'sunrise':
+        interval = repeat.next_sunrise
+      elif request['time'] == '12:00:00':
+        interval = repeat.next_daily
+      else:
+        raise Exception('Unknown requests time %s.' % request['time'])
+    else:
+      raise Exception('Unknown requests interval %s.' % request['interval'])
 
-  # Turn camera IR lights on/off
-  kitchen_ir_off = 'http://kitchen/decoder_control.cgi?user=admin&pwd=oOcSR0kd&command=94'
-  kitchen_ir_on = 'http://kitchen/decoder_control.cgi?user=admin&pwd=oOcSR0kd&command=95'
-  garage_ir_off = 'http://garage/decoder_control.cgi?user=admin&pwd=oOcSR0kd&command=94'
-  garage_ir_on = 'http://garage/decoder_control.cgi?user=admin&pwd=oOcSR0kd&command=95'
-
-  repeat.call_repeating(repeat.next_sunrise, getPage,
-                        kitchen_ir_off, postdata=camera_auth)
-
-  repeat.call_repeating(repeat.next_sunset, getPage,
-                        kitchen_ir_on, postdata=camera_auth)
-
-  repeat.call_repeating(repeat.next_sunset, getPage,
-                        garage_ir_on, postdata=camera_auth)
-
-  # At noon every day, take a snapshot from both the kitchen and garage cameras
-  repeat.call_repeating(repeat.next_daily,
-                        download_file,
-                        download_dir, "front_door_daily.%d.jpg",
-                        'http://kitchen/snapshot.cgi?user=guest&pwd=')
-
-  repeat.call_repeating(repeat.next_daily,
-                        download_file,
-                        download_dir, "garage_daily.%d.jpg",
-                        'http://garage/snapshot.cgi?user=guest&pwd=')
-
+    if 'download_name' in request:
+      repeat.call_repeating(interval,
+                            download_page_wrapper,
+                            download_dir,
+                            request['download_name'],
+                            request['url'])
+    else:
+      repeat.call_repeating(interval,
+                            get_page_wrapper,
+                            request['url'])
 
 def setup():
   # Create our global shared status
   status_state = status.Status()
 
-  # Find our directory for Downloads, if it exists
-  download_dir = findDownloadDir()
+  config = parse_config_file()
 
-  if download_dir:
-    setup_camera_events(status_state, download_dir)
+  print 'config %s' % config
 
-  # Setup pings for various machines
-  up.setup(status_state, ['vinge', 'niven', 'stross', 'stumpy',
-                          'tv', 'pi', 'bone'])
+  if config:
+    setup_url_events(config)
+    up.setup(status_state, config['monitor']['ping'])
+
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
-  root.putChild("clock", web_resources.Clock())
   root.putChild("doorbell", web_resources.Doorbell(status_state))
   root.putChild("status_handler", web_resources.Status(status_state))
   root.putChild("wake_handler", web_resources.Wake())
