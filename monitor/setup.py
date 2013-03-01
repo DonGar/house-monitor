@@ -27,7 +27,7 @@ def parse_config_file():
     with open(config_file, 'r') as f:
       return json.load(f)
 
-def get_page_wrapper(download_dir, download_pattern, url, **kwargs):
+def get_page_wrapper(url, **kwargs):
   print "Started requet %s" % (url,)
 
   def print_success(_):
@@ -39,9 +39,8 @@ def get_page_wrapper(download_dir, download_pattern, url, **kwargs):
   d = getPage(url, **kwargs)
   d.addCallbacks(print_success, print_error)
 
-def download_page_wrapper(download_dir, download_pattern, url, **kwargs):
+def download_page_wrapper(download_pattern, url, **kwargs):
   download_name = download_pattern % time.time()
-  download_file = os.path.join(download_dir, download_name)
 
   print "Started download %s -> %s" % (url, download_name)
 
@@ -51,7 +50,7 @@ def download_page_wrapper(download_dir, download_pattern, url, **kwargs):
   def print_error(error):
     print 'FAILED download %s -> %s: %s.' % (url, download_name, error)
 
-  d = downloadPage(url, download_file, **kwargs)
+  d = downloadPage(url, download_name, **kwargs)
   d.addCallbacks(print_success, print_error)
 
 def setup_url_events(config):
@@ -76,15 +75,15 @@ def setup_url_events(config):
       raise Exception('Unknown requests interval %s.' % request['interval'])
 
     if 'download_name' in request:
+      download_pattern = os.path.join(download_dir, request['download_name'])
       repeat.call_repeating(interval,
                             download_page_wrapper,
-                            download_dir,
-                            request['download_name'],
-                            request['url'])
+                            download_pattern,
+                            bytes(request['url']))
     else:
       repeat.call_repeating(interval,
                             get_page_wrapper,
-                            request['url'])
+                            (request['url']))
 
 def setup():
   # Create our global shared status
