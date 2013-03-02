@@ -1,16 +1,18 @@
 #!/usr/bin/python
 
-import json
+import logging
 
 from twisted.internet import defer
 from twisted.internet import reactor
 
 class Status:
 
-  def __init__(self):
+  def __init__(self, log_handler, log_stream):
     self._values = {}
     self._notifications = []
     self._revision = 1
+    self._log_handler = log_handler
+    self._log_stream = log_stream
 
   def update(self, updates):
     notify = False
@@ -22,7 +24,7 @@ class Status:
 
     if notify:
       self._revision += 1
-      print "New revision %d" % self._revision
+      logging.info('New revision %d', self._revision)
 
       # This small delay notifying clients allows multiple updates to
       # go through in a single notification.
@@ -59,5 +61,6 @@ class Status:
     result['revision'] = self._revision
     return result
 
-  def get_json(self):
-    return json.dumps(self.get_values())
+  def get_log(self):
+    self._log_handler.flush()
+    return self._log_stream.getvalue().split('\n')

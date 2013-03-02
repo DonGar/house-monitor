@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
+import logging
+
 from twisted.internet import task
 from twisted.internet import threads
 
 from monitor import util
 
 def update_ping_result(status, host, value):
-  #print "Updating %s to %s" % (host, value)
+  logging.info('Updating %s to %s', host, value)
   status.update({host : value})
 
 def schedule_update_all_ping_status(status, hosts):

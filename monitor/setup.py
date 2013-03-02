@@ -2,10 +2,13 @@
 
 import datetime
 import json
+import logging
 import os
+import StringIO
 import time
 import urllib
 
+from twisted.python import log
 from twisted.web.client import downloadPage
 from twisted.web.client import getPage
 from twisted.internet import reactor
@@ -19,39 +22,43 @@ from monitor import web_resources
 
 BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
+
 def parse_config_file():
   """Parse a config file in .json format."""
   config_file = os.path.join(BASE_DIR, 'config.json')
-  print 'Reading config %s' % config_file
+  logging.info('Reading config %s', config_file)
   if os.path.exists(config_file):
     with open(config_file, 'r') as f:
       return json.load(f)
 
+
 def get_page_wrapper(url, **kwargs):
-  print "Started requet %s" % (url,)
+  logging.info('Started requet %s', url)
 
   def print_success(_):
-    print 'Downloaded %s.' % (url,)
+    logging.info('Downloaded %s.', url)
 
   def print_error(error):
-    print 'FAILED download %s: %s.' % (url, error)
+    logging.error('FAILED download %s: %s.', url, error)
 
   d = getPage(url, **kwargs)
   d.addCallbacks(print_success, print_error)
 
+
 def download_page_wrapper(download_pattern, url, **kwargs):
   download_name = download_pattern % time.time()
 
-  print "Started download %s -> %s" % (url, download_name)
+  logging.info('Started download %s -> %s', url, download_name)
 
   def print_success(_):
-    print 'Downloaded %s -> %s.' % (url, download_name)
+    logging.info('Downloaded %s -> %s.', url, download_name)
 
   def print_error(error):
-    print 'FAILED download %s -> %s: %s.' % (url, download_name, error)
+    logging.error('FAILED download %s -> %s: %s.', url, download_name, error)
 
   d = downloadPage(url, download_name, **kwargs)
   d.addCallbacks(print_success, print_error)
+
 
 def setup_url_events(config):
   # Directory in which downloaded files are saved.
@@ -95,9 +102,28 @@ def setup_url_events(config):
                             get_page_wrapper,
                             (request['url']))
 
+
+def setupLogging():
+  # Direct twisted logs into the standard Python logging.
+  observer = log.PythonLoggingObserver()
+  observer.start()
+
+  stream = StringIO.StringIO()
+  handler = logging.StreamHandler(stream)
+
+  logger = logging.getLogger()
+  logger.setLevel(logging.INFO)
+  logger.addHandler(handler)
+
+  return handler, stream
+
+
 def setup():
+
+  log_handler, log_stream = setupLogging()
+
   # Create our global shared status
-  status_state = status.Status()
+  status_state = status.Status(log_handler, log_stream)
   config = parse_config_file()
 
   if config:
@@ -109,6 +135,7 @@ def setup():
   root = File("./static")
   root.putChild("doorbell", web_resources.Doorbell(status_state))
   root.putChild("status_handler", web_resources.Status(status_state))
+  root.putChild("log_handler", web_resources.Log(status_state))
   root.putChild("wake_handler", web_resources.Wake())
   root.putChild("restart", web_resources.Restart())
 

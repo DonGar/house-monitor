@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
+import logging
 import subprocess
 
 def ping(hostname, attempts=3):
 
-  # print "Pinging %s" % hostname
+  logging.debug('Pinging %s', hostname)
 
   with open('/dev/null', 'w') as FNULL:
     result = subprocess.call(['ping', '-q', '-c', str(attempts), hostname],

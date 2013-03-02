@@ -11,6 +11,8 @@ import pytz
 from twisted.internet import task
 from twisted.internet import reactor
 
+from twisted.python import log
+
 
 UTC_TZ = pytz.utc
 PACIFIC_TZ = pytz.timezone('US/Pacific')
@@ -117,8 +119,7 @@ def call_repeating(next_call, work, *args, **kwargs):
     try:
       work(*args, **kwargs)
     except Exception as e:
-      msg = traceback.format_exc()
-      print msg
+      log.err()
 
     task.deferLater(reactor, next(next_call), do_work_repeating)
 
