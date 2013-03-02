@@ -62,26 +62,36 @@ def setup_url_events(config):
 
   for request in config['requests']:
     if request['interval'] == 'daily':
+      # Once a day.
       if request['time'] == 'sunset':
-        interval = repeat.next_sunset(latitude, longitude)
+        delay_iter = repeat.next_sunset(latitude, longitude)
       elif request['time'] == 'sunrise':
-        interval = repeat.next_sunrise(latitude, longitude)
+        delay_iter = repeat.next_sunrise(latitude, longitude)
       elif 'time' in request:
-        hour, minute, second = [int(i) for i in request['time'].split(':')]
-        interval = repeat.next_daily(datetime.time(hour, minute, second))
+        hours, minutes, seconds = [int(i) for i in request['time'].split(':')]
+        delay_iter = repeat.next_daily(datetime.time(hours, minutes, seconds))
       else:
         raise Exception('Unknown requests time %s.' % request['time'])
+
+    elif request['interval'] == 'interval':
+      # Multiple times a day.
+      if 'time' in request:
+        hours, minutes, seconds = [int(i) for i in request['time'].split(':')]
+        delay_iter = repeat.next_interval(datetime.timedelta(hours=hours,
+                                                           minutes=minutes,
+                                                           seconds=seconds))
+
     else:
       raise Exception('Unknown requests interval %s.' % request['interval'])
 
     if 'download_name' in request:
       download_pattern = os.path.join(download_dir, request['download_name'])
-      repeat.call_repeating(interval,
+      repeat.call_repeating(delay_iter,
                             download_page_wrapper,
                             download_pattern,
                             bytes(request['url']))
     else:
-      repeat.call_repeating(interval,
+      repeat.call_repeating(delay_iter,
                             get_page_wrapper,
                             (request['url']))
 

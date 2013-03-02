@@ -65,18 +65,20 @@ def next_sunset(latitude, longitude):
     yield datetime_to_seconds_delay(utc_now, result)
 
 
-def next_interval(interval_minutes=5):
+def next_interval(interval=timedelta(minutes=5)):
   """Return the next even interval in a naive utc timestamp."""
+
+  # Make sure interval is > 0.
+  interval = max(interval, timedelta(seconds=1))
 
   while True:
     utc_now = datetime.utcnow()
 
-    unrounded_time = utc_now + timedelta(minutes=interval_minutes)
-    rounded_minutes = unrounded_time.minute - (unrounded_time.minute %
-                                               interval_minutes)
-    result = unrounded_time.replace(minute=rounded_minutes,
-                                    second=0,
-                                    microsecond=0)
+    # Start results at UTC midnight, work forward.
+    result = datetime.combine(utc_now.date(), time())
+    while result < utc_now:
+      result += interval
+
     yield datetime_to_seconds_delay(utc_now, result)
 
 
