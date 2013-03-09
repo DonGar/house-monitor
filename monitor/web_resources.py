@@ -22,6 +22,7 @@ class Doorbell(Resource):
     self.status = status
 
   def render_GET(self, request):
+    logging.info('Doorbell Request: %s', request.uri)
     self.status.update({'doorbell' : str(time.time())})
     return "Success"
 

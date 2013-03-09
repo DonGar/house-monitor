@@ -112,7 +112,6 @@ def setupLogging():
   handler = logging.StreamHandler(stream)
 
   logger = logging.getLogger()
-  logger.setLevel(logging.INFO)
   logger.addHandler(handler)
 
   return handler, stream
