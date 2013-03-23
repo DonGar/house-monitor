@@ -62,7 +62,7 @@ class Status(Resource):
   def send_update(self, status, request):
     # TODO: if the request is already closed, exit cleanly
     request.setHeader("content-type", "application/json")
-    request.write(json.dumps(status.get_values()))
+    request.write(json.dumps(status.get_values(), sort_keys=True, indent=4))
     request.finish()
     return status
 

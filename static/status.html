@@ -18,22 +18,11 @@
     revision = 0;
 
     function update_status() {
-      $.getJSON('status_handler?revision='+revision, function(data) {
+      $.get('status_handler?revision='+revision, function(unparsed_data) {
+        data = $.parseJSON(unparsed_data);
         revision = data['revision'];
-
-        var items = [];
-
-        $.each(data, function(key, val) {
-          // val = val ? 'On' : 'Off';
-
-          items.push('<dt>' + key + '</dt><dd>' + val + '</dd>');
-        });
-
-        $("#status").html($('<dl/>', {
-          'class': 'status_list',
-          html: items.join('')
-        }));
-      })
+        $("#status").html(unparsed_data);
+      }, 'text')
       .success(function() { setTimeout("update_status()", 0); })
       .error(function() { setTimeout("update_status()", 10000); })
     };
@@ -72,9 +61,9 @@
       </header>
 
       <!-- {% block body %} -->
-      <div id="status">
+      <pre id="status">
         Status content not yet loaded.
-      </div>
+      </pre>
       <!--  {% endblock %} -->
 
     </div>
