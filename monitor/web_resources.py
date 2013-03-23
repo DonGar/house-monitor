@@ -14,17 +14,32 @@ from twisted.web.util import redirectTo
 
 from monitor.util import wake_on_lan
 
-class Doorbell(Resource):
-  """Create a handler that records a doorbell push."""
+class Button(Resource):
+  """Create a handler that records a button push."""
   isLeaf = True
 
   def __init__(self, status):
     self.status = status
 
   def render_GET(self, request):
-    logging.info('Doorbell Request: %s', request.uri)
-    self.status.update({'doorbell' : str(time.time())})
-    return "Success"
+    return self.render_POST(request)
+
+  def render_POST(self, request):
+    for id in request.args["id"]:
+      logging.info('Button push for: %s', id)
+      redirect = self.status.get_buttons().get(id).encode('ascii')
+
+      if redirect is None:
+        return "Unknown Id: %s" % id
+
+      self.status.update({id : str(time.time())})
+
+      if redirect:
+        return redirectTo(redirect, request)
+      else:
+        return "Success"
+
+    return "No Button Id"
 
 
 class Status(Resource):

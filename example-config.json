@@ -57,4 +57,20 @@
         ...
       ],
     }
+
+    //
+    // This defines handlers for buttons with ids.
+    //
+    // http://server/button?id=foo
+    //
+    // 'foo' isn't present in this list, that's an error.
+    // 'foo' maps to "", record when this button was last pressed in status.
+    // 'foo' maps to a URL, record it was pushed, and redirect to that url.
+    //
+    "buttons": {
+      "doorbell": "",
+      "system1": "http://wonderful/full/url",
+      "system2": "relative_url?foo",
+    }
+
   }

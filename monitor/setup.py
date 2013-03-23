@@ -128,11 +128,12 @@ def setup():
   if config:
     setup_url_events(config)
     up.setup(status_state, config['monitor']['ping'])
+    status_state.set_buttons(config['buttons'])
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
-  root.putChild("doorbell", web_resources.Doorbell(status_state))
+  root.putChild("button", web_resources.Button(status_state))
   root.putChild("status_handler", web_resources.Status(status_state))
   root.putChild("log_handler", web_resources.Log(status_state))
   root.putChild("wake_handler", web_resources.Wake())

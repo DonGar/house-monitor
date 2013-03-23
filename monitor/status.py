@@ -11,6 +11,8 @@ class Status:
     self._values = {}
     self._notifications = []
     self._revision = 1
+    # Map of button ids -> redirect URLs.
+    self._buttons = {}
     self._log_handler = log_handler
     self._log_stream = log_stream
 
@@ -60,6 +62,12 @@ class Status:
     result = self._values.copy()
     result['revision'] = self._revision
     return result
+
+  def set_buttons(self, buttons):
+    self._buttons = buttons.copy()
+
+  def get_buttons(self):
+    return self._buttons.copy()
 
   def get_log(self):
     self._log_handler.flush()
