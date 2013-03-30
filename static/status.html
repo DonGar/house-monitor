@@ -15,20 +15,33 @@
   <!-- {% block header_javascript %} -->
   <script type="text/javascript">
 
-    revision = 0;
+    revision_status = 0;
+    revision_logs = 0;
 
     function update_status() {
-      $.get('status_handler?revision='+revision, function(unparsed_data) {
+      $.get('status_handler?revision='+revision_status,
+            function(unparsed_data) {
         data = $.parseJSON(unparsed_data);
-        revision = data['revision'];
+        revision_status = data['revision'];
         $("#status").html(unparsed_data);
       }, 'text')
       .success(function() { setTimeout("update_status()", 0); })
       .error(function() { setTimeout("update_status()", 10000); })
     };
 
+    function update_logs() {
+      $.get('log_handler?revision='+revision_logs, function(unparsed_data) {
+        data = $.parseJSON(unparsed_data);
+        revision_logs = data['revision'];
+        $("#logs").html(unparsed_data);
+      }, 'text')
+      .success(function() { setTimeout("update_logs()", 0); })
+      .error(function() { setTimeout("update_logs()", 10000); })
+    };
+
     $(document).ready(function() {
       update_status();
+      update_logs();
     });
 
   </script>
@@ -63,6 +76,10 @@
       <!-- {% block body %} -->
       <pre id="status">
         Status content not yet loaded.
+      </pre>
+
+      <pre id="logs">
+        Log content not yet loaded.
       </pre>
       <!--  {% endblock %} -->
 

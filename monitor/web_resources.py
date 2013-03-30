@@ -87,9 +87,7 @@ class Log(Resource):
   def send_update(self, status, request):
     # TODO: if the request is already closed, exit cleanly
     request.setHeader("content-type", "application/json")
-
-    logs = status.get_log()
-    request.write(json.dumps(logs[-10:]))
+    request.write(json.dumps(status.get_log(), sort_keys=True, indent=4))
     request.finish()
     return status
 
