@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import copy
 import datetime
 import json
 import logging
@@ -15,8 +16,9 @@ from twisted.internet import reactor
 from twisted.web.static import File
 from twisted.web.server import Site
 
+from monitor.engine import Engine
 from monitor.util import repeat
-from monitor import status
+from monitor.status import Status
 from monitor import up
 from monitor import web_resources
 
@@ -118,24 +120,29 @@ def setupLogging():
 
 
 def setup():
-
   log_handler, log_stream = setupLogging()
 
   # Create our global shared status
-  status_state = status.Status(log_handler, log_stream)
+  status = Status(log_handler, log_stream)
   config = parse_config_file()
 
   if config:
+    # Copy select parts of the config into the status.
+    for tag in ('buttons', 'hosts', 'cameras', 'rules'):
+      uri = 'status://%s' % tag
+      status.set(uri, config.get(tag, {}))
+
     setup_url_events(config)
-    up.setup(status_state, config['monitor']['ping'])
-    status_state.set_buttons(config['buttons'])
+    up.setup(status)
+
+  engine = Engine(status)
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
-  root.putChild("button", web_resources.Button(status_state))
-  root.putChild("status_handler", web_resources.Status(status_state))
-  root.putChild("log_handler", web_resources.Log(status_state))
+  root.putChild("button", web_resources.Button(status))
+  root.putChild("status_handler", web_resources.Status(status))
+  root.putChild("log_handler", web_resources.Log(status))
   root.putChild("wake_handler", web_resources.Wake())
   root.putChild("restart", web_resources.Restart())
 

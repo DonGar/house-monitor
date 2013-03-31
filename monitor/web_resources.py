@@ -25,21 +25,30 @@ class Button(Resource):
     return self.render_POST(request)
 
   def render_POST(self, request):
-    for id in request.args["id"]:
-      logging.info('Button push for: %s', id)
-      redirect = self.status.get_buttons().get(id).encode('ascii')
+    logging.info('Request: %s', request.uri)
 
-      if redirect is None:
-        return "Unknown Id: %s" % id
+    id = request.args['id'][0]
+    logging.info('Button push for: %s', id)
 
-      self.status.update({id : str(time.time())})
+    uri = 'status://buttons/%s' % id
+    button = self.status.get(uri)
+    redirect = None
 
-      if redirect:
-        return redirectTo(redirect, request)
-      else:
-        return "Success"
+    # See if there is an action to take.
+    if 'on' in request.args:
+      redirect = button['on']
 
-    return "No Button Id"
+    if 'off' in request.args:
+      redirect = button['off']
+
+    # Record the 'last pressed' time for the button.
+    uri = 'status://buttons/%s/pushed' % id
+    self.status.set(uri, str(time.time()))
+
+    if redirect:
+      return redirectTo(redirect.encode('ascii'), request)
+
+    return "Success"
 
 
 class Status(Resource):
@@ -62,7 +71,7 @@ class Status(Resource):
   def send_update(self, status, request):
     # TODO: if the request is already closed, exit cleanly
     request.setHeader("content-type", "application/json")
-    request.write(json.dumps(status.get_values(), sort_keys=True, indent=4))
+    request.write(json.dumps(status.get(), sort_keys=True, indent=4))
     request.finish()
     return status
 

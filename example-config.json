@@ -1,76 +1,107 @@
-  {
-    // Directory in which downloaded files are saved.
-    "downloads": "<directory_name>",
+{
+  // Directory in which downloaded files are saved.
+  "downloads": "<directory_name>",
 
-    // Local timezone on the server. Used for url download times.
-    "timezone": "US/Pacific",
+  // Local timezone on the server. Used for url download times.
+  "timezone": "US/Pacific",
 
-    // Latitude/Longitude of the server. Used to find sunset/sunrise times.
-    "latitude": "37.3861",
-    "longitude": "-122.0839",
+  // Latitude/Longitude of the server. Used to find sunset/sunrise times.
+  "latitude": "37.3861",
+  "longitude": "-122.0839",
 
-    // Definitions of camera feeds to display on the website.
-    "cameras": [
-      {
-        "name": "<name>",
-        "address": "<snapshot_url>",
-      },
-    ],
+  // Definitions of camera feeds to display on the website.
+  "cameras": [
+    {
+      "name": "<name>",
+      "address": "<snapshot_url>",
+    },
+  ],
 
-    // URLs to download on a regular base.
-    // interval:
-    //   "daily" is the only value supported currently.
-    //
-    // time:
-    //   "sunset", "sunrise", and "12:00:00" are currently supported.
-    //   12:00:00 will be handled based on the local timezone.
-    //
-    // url:
-    //   url to request. The results are discarded if download_name not
-    //   present.
-    //
-    // download_name: (optional)
-    //   filename to save the downloaded results into. It should contain a
-    //   '%d' which will be replaced with a timestamp at each download.
-    //   The downloaded file will be stored in the downloads directory
-    //   specified above.
+  // URLs to download on a regular base.
+  // interval:
+  //   "daily" is the only value supported currently.
+  //
+  // time:
+  //   "sunset", "sunrise", and "12:00:00" are currently supported.
+  //   12:00:00 will be handled based on the local timezone.
+  //
+  // url:
+  //   url to request. The results are discarded if download_name not
+  //   present.
+  //
+  // download_name: (optional)
+  //   filename to save the downloaded results into. It should contain a
+  //   '%d' which will be replaced with a timestamp at each download.
+  //   The downloaded file will be stored in the downloads directory
+  //   specified above.
 
-    "urls": [
-      {
-        "interval": "daily",
-        "time": "sunset",
-        "url": "http://kitchen/decoder_control.cgi?user=guest&pwd=&command=95",
-        "comment": "Enable Kitchen camera's IR at Sunset.",
-      },
-      {
-        "interval": "daily",
-        "time": "12:00:00",
-        "url": "http://kitchen/snapshot.cgi?user=guest&pwd=",
-        "download_name": "daily.%d.jpg",
-        "comment": "Take a snapshot of the front door at noon.",
-      },
-    ],
+  "urls": [
+    {
+      "interval": "daily",
+      "time": "sunset",
+      "url": "http://kitchen/decoder_control.cgi?user=guest&pwd=&command=95",
+      "comment": "Enable Kitchen camera's IR at Sunset.",
+    },
+    {
+      "interval": "daily",
+      "time": "12:00:00",
+      "url": "http://kitchen/snapshot.cgi?user=guest&pwd=",
+      "download_name": "daily.%d.jpg",
+      "comment": "Take a snapshot of the front door at noon.",
+    },
+  ],
 
-    "monitor": {
-      "ping": [
-        "<hostname>",
-        ...
-      ],
+
+  //
+  // Each hostname should map do a dictionary.
+  // Each host will be pinged frequently. The value "up" in the
+  // dictionary will be updated with True or False based on the
+  // result of the pinging.
+  //
+  // If the values "wake", and "sleep" are present, the URLs values
+  // they have will be redirected to response to:
+  //   host?id=<id>&command=<wake|sleep>
+  //
+  "hosts": {
+    "<hostname>": {
+      "up": false,
+      "wake": "wake_handler?target=00:25:22:CF:01:31",
+      "sleep": "http://foo/bar"
+    },
+    "<hostname>": {}
+  },
+
+
+  //
+  // This defines handlers for buttons with ids.
+  //
+  // http://server/button?id=foo
+  //
+  // 'foo' isn't present in this list, that's an error.
+  // 'record' record when this button was last pressed in status.
+  // 'momentary' maps to a URL, record it was pushed, and redirect to that url.
+  // 'on-off' maps to a URL, record it was pushed, and redirect to that url.
+  //
+  "buttons": {
+    "record": {
+    },
+    "momentary": { "push": "http://some/wonderful/url" },
+    "on-off": {
+      "on": "http://switch/on/url",
+      "off": "http://switch/off/url"
+    },
+    "combined": {
+      "on": "http://switch/on/url",
+      "off": "http://switch/off/url",
+      "light": false
     }
+  },
 
-    //
-    // This defines handlers for buttons with ids.
-    //
-    // http://server/button?id=foo
-    //
-    // 'foo' isn't present in this list, that's an error.
-    // 'foo' maps to "", record when this button was last pressed in status.
-    // 'foo' maps to a URL, record it was pushed, and redirect to that url.
-    //
-    "buttons": {
-      "doorbell": "",
-      "system1": "http://wonderful/full/url",
-      "system2": "relative_url?foo",
+  "rules": [
+    {
+      "behavior": "mirror",
+      "src": "status://hosts/<hostname>/up",
+      "dest": "status://buttons/combined/light"
     }
-
-  }
+  ]
+}
