@@ -61,7 +61,7 @@ class Button(_ConfigActionHandler):
 
   def handle_action(self, id, action):
     if action is None:
-      action is 'on'
+      action = 'on'
 
     assert action in ('on', 'off')
 
