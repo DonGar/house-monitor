@@ -6,6 +6,7 @@ import time
 
 from twisted.internet import base
 from twisted.internet import defer
+from twisted.internet import error
 from twisted.internet import reactor
 from twisted.internet import task
 from twisted.web import server
@@ -14,7 +15,7 @@ from twisted.web.util import redirectTo
 
 from monitor.util import wake_on_lan
 
-class Button(Resource):
+class _ConfigActionHandler(Resource):
   """Create a handler that records a button push."""
   isLeaf = True
 
@@ -28,27 +29,55 @@ class Button(Resource):
     logging.info('Request: %s', request.uri)
 
     id = request.args['id'][0]
-    logging.info('Button push for: %s', id)
+    action = request.args.get('action', [None])[0]
 
-    uri = 'status://buttons/%s' % id
-    button = self.status.get(uri)
-    redirect = None
-
-    # See if there is an action to take.
-    if 'on' in request.args:
-      redirect = button['on']
-
-    if 'off' in request.args:
-      redirect = button['off']
-
-    # Record the 'last pressed' time for the button.
-    uri = 'status://buttons/%s/pushed' % id
-    self.status.set(uri, str(time.time()))
+    redirect = self.handle_action(id, action)
 
     if redirect:
       return redirectTo(redirect.encode('ascii'), request)
 
     return "Success"
+
+  def handle_action(self, id, action):
+    raise Exception('handle_action not implemented.')
+
+
+class Host(_ConfigActionHandler):
+  """Create a handler that records a button push."""
+
+  def handle_action(self, id, action):
+    assert action in ('sleep', 'wake')
+
+    uri = 'status://hosts/%s' % id
+    node = self.status.get(uri)
+
+    # See if there is an action to take.
+    if action in node['action']:
+      return node['action'][action]
+    else:
+      raise Exception('Unknown node action %s.' % action)
+
+
+class Button(_ConfigActionHandler):
+  """Create a handler that records a button push."""
+
+  def handle_action(self, id, action):
+    if action is None:
+      action is 'on'
+
+    assert action in ('on', 'off')
+
+    uri = 'status://buttons/%s' % id
+    node = self.status.get(uri)
+
+    uri = 'status://buttons/%s/pushed' % id
+    self.status.set(uri, str(time.time()))
+
+    # See if there is an action to take.
+    if action in node['action']:
+      return node['action'][action]
+    else:
+      raise Exception('Unknown node action %s.' % action)
 
 
 class Status(Resource):
@@ -69,7 +98,6 @@ class Status(Resource):
     return server.NOT_DONE_YET
 
   def send_update(self, status, request):
-    # TODO: if the request is already closed, exit cleanly
     request.setHeader("content-type", "application/json")
     request.write(json.dumps(status.get(), sort_keys=True, indent=4))
     request.finish()
@@ -94,7 +122,6 @@ class Log(Resource):
     return server.NOT_DONE_YET
 
   def send_update(self, status, request):
-    # TODO: if the request is already closed, exit cleanly
     request.setHeader("content-type", "application/json")
     request.write(json.dumps(status.get_log(), sort_keys=True, indent=4))
     request.finish()

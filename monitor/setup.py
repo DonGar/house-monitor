@@ -43,7 +43,7 @@ def get_page_wrapper(url, **kwargs):
   def print_error(error):
     logging.error('FAILED download %s: %s.', url, error)
 
-  d = getPage(url, **kwargs)
+  d = getPage(url.encode('ascii'), **kwargs)
   d.addCallbacks(print_success, print_error)
 
 
@@ -141,6 +141,7 @@ def setup():
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
   root.putChild("button", web_resources.Button(status))
+  root.putChild("host", web_resources.Host(status))
   root.putChild("status_handler", web_resources.Status(status))
   root.putChild("log_handler", web_resources.Log(status))
   root.putChild("wake_handler", web_resources.Wake())
