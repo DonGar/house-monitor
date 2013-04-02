@@ -52,7 +52,7 @@ class Host(_ConfigActionHandler):
     node = self.status.get(uri)
 
     # See if there is an action to take.
-    if action in node['action']:
+    if action and 'action' in node and action in node['action']:
       return node['action'][action]
 
 
@@ -72,7 +72,7 @@ class Button(_ConfigActionHandler):
     self.status.set(uri, str(time.time()))
 
     # See if there is an action to take.
-    if action in node['action']:
+    if action and 'action' in node and action in node['action']:
       return node['action'][action]
 
 
