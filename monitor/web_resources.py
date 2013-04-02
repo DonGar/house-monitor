@@ -46,7 +46,7 @@ class Host(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
   def handle_action(self, id, action):
-    assert action in ('sleep', 'wake')
+    assert action in (None, 'sleep', 'wake')
 
     uri = 'status://hosts/%s' % id
     node = self.status.get(uri)
@@ -54,8 +54,6 @@ class Host(_ConfigActionHandler):
     # See if there is an action to take.
     if action in node['action']:
       return node['action'][action]
-    else:
-      raise Exception('Unknown node action %s.' % action)
 
 
 class Button(_ConfigActionHandler):
@@ -76,8 +74,6 @@ class Button(_ConfigActionHandler):
     # See if there is an action to take.
     if action in node['action']:
       return node['action'][action]
-    else:
-      raise Exception('Unknown node action %s.' % action)
 
 
 class Status(Resource):
