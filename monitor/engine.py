@@ -4,7 +4,8 @@ import logging
 
 class Engine:
 
-  def __init__(self, status):
+  def __init__(self, rules, status):
+    self.rules = rules
     self.setup_processing(status)
     self.process_rules(status)
 
@@ -16,9 +17,8 @@ class Engine:
   def process_rules(self, status):
     print 'process_rules called'
     logging.info('process_rules called')
-    rules = status.get('status://rules')
 
-    for rule in rules:
+    for rule in self.rules:
       behavior = rule['behavior']
 
       if behavior == 'mirror':

@@ -62,12 +62,14 @@ def download_page_wrapper(download_pattern, url, **kwargs):
   d.addCallbacks(print_success, print_error)
 
 
-def setup_url_events(config):
+def setup_requests(config):
   # Directory in which downloaded files are saved.
-  download_dir = config['downloads']
-  timezone = config['timezone']
-  latitude = float(config['latitude'])
-  longitude = float(config['longitude'])
+  server = config['server']
+
+  download_dir = server['downloads']
+  timezone = server['timezone']
+  latitude = float(server['latitude'])
+  longitude = float(server['longitude'])
 
   for request in config['requests']:
     if request['interval'] == 'daily':
@@ -125,26 +127,28 @@ def setup():
   # Create our global shared status
   status = Status(log_handler, log_stream)
   config = parse_config_file()
+  server = config['server']
 
   if config:
     # Copy select parts of the config into the status.
-    for tag in ('buttons', 'hosts', 'cameras', 'rules'):
+    for tag in ('buttons', 'cameras', 'emails', 'hosts'):
       uri = 'status://%s' % tag
       status.set(uri, config.get(tag, {}))
 
-    setup_url_events(config)
+    setup_requests(config)
     up.setup(status)
 
-  engine = Engine(status)
+  engine = Engine(config.get('rules', []), status)
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
   root.putChild("button", web_resources.Button(status))
+  root.putChild("email", web_resources.Email(server['email'], status))
   root.putChild("host", web_resources.Host(status))
-  root.putChild("status_handler", web_resources.Status(status))
   root.putChild("log_handler", web_resources.Log(status))
-  root.putChild("wake_handler", web_resources.Wake())
   root.putChild("restart", web_resources.Restart())
+  root.putChild("status_handler", web_resources.Status(status))
+  root.putChild("wake_handler", web_resources.Wake())
 
   reactor.listenTCP(8080, Site(root))

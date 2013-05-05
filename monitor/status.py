@@ -74,7 +74,7 @@ class Status:
 
     return copy.deepcopy(values)
 
-  def set(self, uri, update_values):
+  def set(self, uri, update_value):
     values = self._values
     keys = self._parse_uri(uri)
     final_key = keys.pop()
@@ -82,8 +82,8 @@ class Status:
     for key in keys:
       values = values[key]
 
-    if final_key not in values or values[final_key] != update_values:
-      values[final_key] = copy.deepcopy(update_values)
+    if final_key not in values or values[final_key] != update_value:
+      values[final_key] = copy.deepcopy(update_value)
       self.notify()
 
   def get_log(self):

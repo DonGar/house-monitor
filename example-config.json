@@ -1,13 +1,51 @@
 {
-  // Directory in which downloaded files are saved.
-  "downloads": "<directory_name>",
 
-  // Local timezone on the server. Used for url download times.
-  "timezone": "US/Pacific",
+  // General server side configuration.
+  "server": {
 
-  // Latitude/Longitude of the server. Used to find sunset/sunrise times.
-  "latitude": "37.3861",
-  "longitude": "-122.0839",
+    // Directory in which downloaded files are saved.
+    "downloads": "<directory_name>",
+
+    // Local timezone on the server. Used for url download times.
+    "timezone": "US/Pacific",
+
+    // Latitude/Longitude of the server. Used to find sunset/sunrise times.
+    "latitude": "37.3861",
+    "longitude": "-122.0839",
+
+    // Settings used to send email.
+    "email": {
+      "server": "smtp.gmail.com:587",
+      "user": "foo@gmail.com",
+      "password": "",  // For GMail, I suggest an Application Specific Password
+      "from": "foo@gmail.com",
+      "to": "foo@gmail.com"
+    }
+  },
+
+  //
+  // This defines handlers for buttons with ids.
+  //
+  // http://server/button?id=foo
+  // http://server/button?id=foo?action=on
+  // http://server/button?id=foo?action=off
+  //
+  // 'foo' isn't present in this list, that's an error.
+  //
+  // When a button is invoked the field "pushed" will be updated with the
+  // current time.
+  //
+  // When a button is pushed, the field "state" will be set to true or false
+  // based on the action of "on" or "off". Default action is "on".
+  //
+  "buttons": {
+    "basic": {
+    },
+    "prepopulated": {
+      "pushed": 123,
+      "state": false
+    }
+  },
 
   // Definitions of camera feeds to display on the website.
   "cameras": [
@@ -16,6 +54,37 @@
       "address": "<snapshot_url>",
     },
   ],
+
+  // http://server/email_action?id=foo
+  "emails": {
+    "foo": {
+        "to": "",  // If not present, defaults to server/email/to
+        "subject": "",
+        "body": "",
+        "attachment": []
+      }
+  },
+
+  //
+  // Each hostname should map do a dictionary.
+  // Each host will be pinged frequently. The value "up" in the
+  // dictionary will be updated with True or False based on the
+  // result of the pinging.
+  //
+  // If the values "wake", and "sleep" are present, the URLs values
+  // they have will be redirected to response to:
+  //   host?id=<id>&command=<wake|sleep>
+  //
+  "hosts": {
+    "<hostname>": {
+      "up": false,
+      "action": {
+        "wake": "wake_handler?target=00:25:22:CF:01:31",
+        "sleep": "http://foo/bar"
+      }
+    },
+    "<hostname>": {}
+  },
 
   // URLs to download on a regular base.
   // interval:
@@ -50,53 +119,6 @@
       "comment": "Take a snapshot of the front door at noon.",
     },
   ],
-
-
-  //
-  // Each hostname should map do a dictionary.
-  // Each host will be pinged frequently. The value "up" in the
-  // dictionary will be updated with True or False based on the
-  // result of the pinging.
-  //
-  // If the values "wake", and "sleep" are present, the URLs values
-  // they have will be redirected to response to:
-  //   host?id=<id>&command=<wake|sleep>
-  //
-  "hosts": {
-    "<hostname>": {
-      "up": false,
-      "action": {
-        "wake": "wake_handler?target=00:25:22:CF:01:31",
-        "sleep": "http://foo/bar"
-      }
-    },
-    "<hostname>": {}
-  },
-
-
-  //
-  // This defines handlers for buttons with ids.
-  //
-  // http://server/button?id=foo
-  // http://server/button?id=foo?action=on
-  // http://server/button?id=foo?action=off
-  //
-  // 'foo' isn't present in this list, that's an error.
-  //
-  // When a button is invoked the field "pushed" will be updated with the
-  // current time.
-  //
-  // When a button is pushed, the field "state" will be set to true or false
-  // based on the action of "on" or "off". Default action is "on".
-  //
-  "buttons": {
-    "basic": {
-    },
-    "prepopulated": {
-      "pushed": 123,
-      "state": false
-    }
-  },
 
   "rules": [
     {
