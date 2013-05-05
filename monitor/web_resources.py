@@ -68,12 +68,13 @@ class Button(_ConfigActionHandler):
     uri = 'status://buttons/%s' % id
     node = self.status.get(uri)
 
-    uri = 'status://buttons/%s/pushed' % id
-    self.status.set(uri, str(time.time()))
+    # Rmember when the button was pushed
+    status_pushed = 'status://buttons/%s/pushed' % id
+    self.status.set(status_pushed, int(time.time()))
 
-    # See if there is an action to take.
-    if action and 'action' in node and action in node['action']:
-      return node['action'][action]
+    # Remember if it was turned on or off.
+    button_state = 'status://buttons/%s/state'
+    self.status.set(button_state, action == 'on')
 
 
 class Status(Resource):

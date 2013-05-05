@@ -78,37 +78,29 @@
   // This defines handlers for buttons with ids.
   //
   // http://server/button?id=foo
+  // http://server/button?id=foo?action=on
+  // http://server/button?id=foo?action=off
   //
   // 'foo' isn't present in this list, that's an error.
-  // 'record' record when this button was last pressed in status.
-  // 'momentary' maps to a URL, record it was pushed, and redirect to that url.
-  // 'on-off' maps to a URL, record it was pushed, and redirect to that url.
+  //
+  // When a button is invoked the field "pushed" will be updated with the
+  // current time.
+  //
+  // When a button is pushed, the field "state" will be set to true or false
+  // based on the action of "on" or "off". Default action is "on".
   //
   "buttons": {
-    "record": {
+    "basic": {
     },
-    "momentary": {
-      "action": {
-        "on": "http://switch/on/url"
-      }
-    },
-    "on-off": {
-      "action": {
-        "on": "http://switch/on/url",
-        "off": "http://switch/off/url"
-      }
-    },
-    "combined": {
-      "action": {
-        "on": "http://switch/on/url",
-        "off": "http://switch/off/url"
-      },
-      "light": false
+    "prepopulated": {
+      "pushed": 123,
+      "state": false
     }
   },
 
   "rules": [
     {
+      // Mirror the field in the status to another field in the status.
       "behavior": "mirror",
       "src": "status://hosts/<hostname>/up",
       "dest": "status://buttons/combined/light"
