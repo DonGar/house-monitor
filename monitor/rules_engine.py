@@ -2,10 +2,10 @@
 
 import logging
 
-class Engine:
+class RulesEngine:
 
-  def __init__(self, rules, status):
-    self.rules = rules
+  def __init__(self, status):
+    self.rules = status.get_config().get('rules', [])
     self.setup_processing(status)
     self.process_rules(status)
 
@@ -22,9 +22,9 @@ class Engine:
       behavior = rule['behavior']
 
       if behavior == 'mirror':
-        self.process_mirror(status, **rule)
+        process_mirror(status, rule['src'], rule['dest'])
       else:
         raise Exception('Unknown rule %s' % behavior)
 
-  def process_mirror(self, status, behavior, src, dest):
-    status.set(dest, status.get(src))
+def process_mirror(status, src, dest):
+  status.set(dest, status.get(src))

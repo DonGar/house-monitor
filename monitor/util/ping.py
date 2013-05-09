@@ -16,5 +16,5 @@ def ping(hostname, attempts=3):
   return result == 0
 
 if __name__ == "__main__":
-    # Convert true for success to 0 exit code
-    exit(not ping('localhost'))
+  # Convert true for success to 0 exit code
+  exit(not ping('localhost'))

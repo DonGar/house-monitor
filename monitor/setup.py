@@ -16,11 +16,11 @@ from twisted.internet import reactor
 from twisted.web.static import File
 from twisted.web.server import Site
 
-from monitor.engine import Engine
+from monitor.rules_engine import RulesEngine
 from monitor.util import repeat
 from monitor.status import Status
-from monitor import up
-from monitor import web_resources
+import monitor.up
+import monitor.web_resources
 
 BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -62,12 +62,12 @@ def download_page_wrapper(download_pattern, url, **kwargs):
   d.addCallbacks(print_success, print_error)
 
 
-def setup_requests(config):
+def setup_requests(status):
   # Directory in which downloaded files are saved.
+  config = status.get_config()
   server = config['server']
 
   download_dir = server['downloads']
-  timezone = server['timezone']
   latitude = float(server['latitude'])
   longitude = float(server['longitude'])
 
@@ -75,12 +75,13 @@ def setup_requests(config):
     if request['interval'] == 'daily':
       # Once a day.
       if request['time'] == 'sunset':
-        delay_iter = repeat.next_sunset(latitude, longitude)
+        delay_helper = repeat.sunset_helper(latitude, longitude)
       elif request['time'] == 'sunrise':
-        delay_iter = repeat.next_sunrise(latitude, longitude)
+        delay_helper = repeat.sunset_helper(latitude, longitude)
       elif 'time' in request:
         hours, minutes, seconds = [int(i) for i in request['time'].split(':')]
-        delay_iter = repeat.next_daily(datetime.time(hours, minutes, seconds))
+        time_of_day = datetime.time(hours, minutes, seconds)
+        delay_helper = repeat.daily_helper(time_of_day)
       else:
         raise Exception('Unknown requests time %s.' % request['time'])
 
@@ -88,23 +89,23 @@ def setup_requests(config):
       # Multiple times a day.
       if 'time' in request:
         hours, minutes, seconds = [int(i) for i in request['time'].split(':')]
-        delay_iter = repeat.next_interval(datetime.timedelta(hours=hours,
-                                                           minutes=minutes,
-                                                           seconds=seconds))
-
+        interval = datetime.timedelta(hours=hours,
+                                      minutes=minutes,
+                                      seconds=seconds)
+        delay_helper = repeat.interval_helper(interval)
     else:
       raise Exception('Unknown requests interval %s.' % request['interval'])
 
     if 'download_name' in request:
       download_pattern = os.path.join(download_dir, request['download_name'])
-      repeat.call_repeating(delay_iter,
+      repeat.call_repeating(delay_helper,
                             download_page_wrapper,
                             download_pattern,
                             bytes(request['url']))
     else:
-      repeat.call_repeating(delay_iter,
+      repeat.call_repeating(delay_helper,
                             get_page_wrapper,
-                            (request['url']))
+                            bytes(request['url']))
 
 
 def setupLogging():
@@ -125,30 +126,22 @@ def setup():
   log_handler, log_stream = setupLogging()
 
   # Create our global shared status
-  status = Status(log_handler, log_stream)
   config = parse_config_file()
-  server = config['server']
+  status = Status(config, log_handler, log_stream)
+  engine = RulesEngine(status)
 
-  if config:
-    # Copy select parts of the config into the status.
-    for tag in ('buttons', 'cameras', 'emails', 'hosts'):
-      uri = 'status://%s' % tag
-      status.set(uri, config.get(tag, {}))
-
-    setup_requests(config)
-    up.setup(status)
-
-  engine = Engine(config.get('rules', []), status)
+  setup_requests(status)
+  monitor.up.setup(status)
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
-  root.putChild("button", web_resources.Button(status))
-  root.putChild("email", web_resources.Email(server['email'], status))
-  root.putChild("host", web_resources.Host(status))
-  root.putChild("log_handler", web_resources.Log(status))
-  root.putChild("restart", web_resources.Restart())
-  root.putChild("status_handler", web_resources.Status(status))
-  root.putChild("wake_handler", web_resources.Wake())
+  root.putChild("button", monitor.web_resources.Button(status))
+  root.putChild("email", monitor.web_resources.Email(status))
+  root.putChild("host", monitor.web_resources.Host(status))
+  root.putChild("log_handler", monitor.web_resources.Log(status))
+  root.putChild("restart", monitor.web_resources.Restart(status))
+  root.putChild("status_handler", monitor.web_resources.Status(status))
+  root.putChild("wake_handler", monitor.web_resources.Wake(status))
 
   reactor.listenTCP(8080, Site(root))

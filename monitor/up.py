@@ -6,7 +6,7 @@ import logging
 from twisted.internet import task
 from twisted.internet import threads
 
-from monitor import util
+import monitor.util.ping
 
 def update_ping_result(status, host, value):
   logging.info('Updating %s to %s', host, value)
@@ -16,8 +16,10 @@ def update_ping_result(status, host, value):
 def schedule_update_all_ping_status(status):
   for host in status.get('status://hosts'):
     logging.info('Pinging %s', host)
-    d = threads.deferToThread(util.ping, host)
-    d.addCallback(lambda value, host=host: update_ping_result(status, host, value))
+    d = threads.deferToThread(monitor.util.ping.ping, host)
+    d.addCallback(lambda value, host=host: update_ping_result(status,
+                                                              host,
+                                                              value))
 
 def setup(status):
   # Setup background loop for ping targets in status

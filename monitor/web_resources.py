@@ -22,8 +22,6 @@ from twisted.web.resource import Resource
 from twisted.web.util import redirectTo
 
 
-
-
 from monitor.util import wake_on_lan
 
 
@@ -31,65 +29,64 @@ class _ConfigHandler(Resource):
   """Create a handler that records a button push."""
   isLeaf = True
 
+  def __init__(self, status):
+    Resource.__init__(self)
+    self.status = status
+
   def render_GET(self, request):
     return self.render_POST(request)
 
 
 class _ConfigActionHandler(_ConfigHandler):
   """Create a handler that records a button push."""
-  def __init__(self, status):
-    self.status = status
 
   def render_POST(self, request):
     logging.info('Request: %s', request.uri)
 
-    id = request.args['id'][0]
+    item_id = request.args['id'][0]
     action = request.args.get('action', [None])[0]
 
-    redirect = self.handle_action(id, action)
+    redirect = self.handle_action(item_id, action)
 
     if redirect:
       return redirectTo(redirect.encode('ascii'), request)
 
     return "Success"
 
-  def handle_action(self, id, action):
+  def handle_action(self, _item_id, _action):
     raise Exception('handle_action not implemented.')
 
 
 class Button(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, id, action):
+  def handle_action(self, item_id, action):
     if action is None:
       action = 'on'
 
     assert action in ('on', 'off')
 
-    uri = 'status://buttons/%s' % id
-    node = self.status.get(uri)
-
     # Rmember when the button was pushed
-    status_pushed = 'status://buttons/%s/pushed' % id
+    status_pushed = 'status://buttons/%s/pushed' % item_id
     self.status.set(status_pushed, int(time.time()))
 
     # Remember if it was turned on or off.
-    button_state = 'status://buttons/%s/state' % id
+    button_state = 'status://buttons/%s/state' % item_id
     self.status.set(button_state, action == 'on')
 
 
 class Email(_ConfigHandler):
 
-  def __init__(self, email_config, status):
-    self.email_config = email_config
-    self.status = status
+  def __init__(self, status):
+    _ConfigHandler.__init__(self, status)
+    self.email_config = status.get_config()['server']['email']
 
   def render_POST(self, request):
-    id = request.args['id'][0]
-    uri = 'status://emails/%s' % id
+    item_id = request.args['id'][0]
+    uri = 'status://emails/%s' % item_id
     node = self.status.get(uri)
 
-    server, port = self.email_config['server'].split(':')
+    email_server, port = self.email_config['server'].split(':')
     port = int(port)
 
     user = self.email_config['user']
@@ -117,7 +114,7 @@ class Email(_ConfigHandler):
     #                 'attachment; filename="%s"' % os.path.basename(attach))
     # msg.attach(part)
 
-    mailServer = smtplib.SMTP(server, port)
+    mailServer = smtplib.SMTP(email_server, port)
     mailServer.ehlo()
     mailServer.starttls()
     mailServer.ehlo()
@@ -129,10 +126,10 @@ class Email(_ConfigHandler):
 class Host(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, id, action):
+  def handle_action(self, item_id, action):
     assert action in (None, 'sleep', 'wake')
 
-    uri = 'status://hosts/%s' % id
+    uri = 'status://hosts/%s' % item_id
     node = self.status.get(uri)
 
     # See if there is an action to take.
@@ -141,9 +138,6 @@ class Host(_ConfigActionHandler):
 
 
 class Log(_ConfigHandler):
-
-  def __init__(self, status):
-    self.status = status
 
   def render_POST(self, request):
     logging.info('Request: %s', request.uri)
@@ -165,15 +159,12 @@ class Log(_ConfigHandler):
 
 class Restart(_ConfigHandler):
 
-  def render_POST(self, request):
+  def render_POST(self, _request):
     reactor.stop()
     return "Success"
 
 
 class Status(_ConfigHandler):
-
-  def __init__(self, status):
-    self.status = status
 
   def render_POST(self, request):
     logging.info('Request: %s', request.uri)
@@ -198,5 +189,5 @@ class Wake(_ConfigHandler):
   def render_POST(self, request):
     for mac in request.args["target"]:
       logging.info('received request for: %s', mac)
-      wake_on_lan(mac)
+      wake_on_lan.wake_on_lan(mac)
     return "Success"

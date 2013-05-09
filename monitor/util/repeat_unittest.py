@@ -9,6 +9,10 @@ from pytz import timezone
 
 import repeat
 
+LATITUDE = 37.3861
+LONGITUDE = -122.0839
+
+
 class TestRepeatFunctions(unittest.TestCase):
 
   def test_utc_to_localtime(self):
@@ -47,97 +51,99 @@ class TestRepeatFunctions(unittest.TestCase):
     self.assertEquals(left.replace(microsecond=0),
                       right.replace(microsecond=0))
 
-  def test_next_sunrise(self):
-    src = datetime(2012, 12, 9, 0, 32, 49)
-    expected = datetime(2012, 12, 9, 15, 11, 5)
+  def test_sunrise_next(self):
+    helper = repeat.sunrise_helper(LATITUDE, LONGITUDE)
+    expected = datetime(2012, 12, 9, 15, 36, 38)
 
-    self._almost_timedates(repeat.next_sunrise(src),
-                           expected)
+    now = datetime(2012, 12, 9, 0, 32, 49)
+    self._almost_timedates(helper(now), expected)
 
-    self._almost_timedates(repeat.next_sunrise(expected - timedelta(minutes=5)),
-                           expected)
+    now = expected - timedelta(seconds=1)
+    self._almost_timedates(helper(now), expected)
 
-    expected_next = datetime(2012, 12, 10, 15, 11, 52)
-    self._almost_timedates(repeat.next_sunrise(expected + timedelta(minutes=5)),
-                           expected_next)
+    now = expected + timedelta(seconds=1)
+    expected_next = datetime(2012, 12, 10, 15, 36, 57)
+    self._almost_timedates(helper(now), expected_next)
 
 
-  def test_next_sunset(self):
-    src = datetime(2012, 12, 9, 0, 32, 49)
-    expected = datetime(2012, 12, 9, 0, 50, 41)
+  def test_sunset_next(self):
+    helper = repeat.sunset_helper(LATITUDE, LONGITUDE)
+    expected = datetime(2012, 12, 9, 4, 47, 24)
 
-    self._almost_timedates(repeat.next_sunset(src),
-                           expected)
+    now = datetime(2012, 12, 9, 0, 32, 49)
+    self._almost_timedates(helper(now), expected)
 
-    self._almost_timedates(repeat.next_sunset(expected - timedelta(minutes=5)),
-                           expected)
+    now = expected - timedelta(seconds=1)
+    self._almost_timedates(helper(now), expected)
 
-    expected_next = datetime(2012, 12, 10, 0, 50, 47)
-    self._almost_timedates(repeat.next_sunset(expected + timedelta(minutes=5)),
-                           expected_next)
+    now = expected + timedelta(seconds=1)
+    expected_next = datetime(2012, 12, 10, 4, 48, 0)
+    self._almost_timedates(helper(now), expected_next)
 
-  def test_next_interval(self):
+  def test_interval_next(self):
+    helper_five = repeat.interval_helper(timedelta(minutes=5))
+
     # Basic tests
-    src = datetime(2012, 12, 9, 0, 32, 49)
-    self.assertEquals(repeat.next_interval(src, 5),
-                      datetime(2012, 12, 9, 0, 35, 0))
-    self.assertEquals(repeat.next_interval(src, 8),
+    now = datetime(2012, 12, 9, 0, 32, 49)
+    self.assertEquals(helper_five(now), datetime(2012, 12, 9, 0, 35, 0))
+    self.assertEquals(repeat.interval_next(now, timedelta(minutes=8)),
                       datetime(2012, 12, 9, 0, 40, 0))
 
     # Started on even time
-    src = datetime(2012, 12, 9, 0, 0, 0)
-    self.assertEquals(repeat.next_interval(src, 5),
-                      datetime(2012, 12, 9, 0, 5, 0))
+    now = datetime(2012, 12, 9, 0, 0, 0)
+    self.assertEquals(helper_five(now), datetime(2012, 12, 9, 0, 0, 0))
 
     # Hour boundries
-    src = datetime(2012, 12, 9, 0, 58, 49)
-    self.assertEquals(repeat.next_interval(src, 5),
+    now = datetime(2012, 12, 9, 0, 58, 49)
+    self.assertEquals(helper_five(now),
                       datetime(2012, 12, 9, 1, 0, 0))
-    self.assertEquals(repeat.next_interval(src, 10),
+    self.assertEquals(repeat.interval_next(now, timedelta(minutes=10)),
                       datetime(2012, 12, 9, 1, 0, 0))
-    self.assertEquals(repeat.next_interval(src, 15),
+    self.assertEquals(repeat.interval_next(now, timedelta(minutes=15)),
                       datetime(2012, 12, 9, 1, 0, 0))
 
     # Day boundry
-    src = datetime(2012, 12, 9, 23, 58, 0)
-    self.assertEquals(repeat.next_interval(src, 5),
+    now = datetime(2012, 12, 9, 23, 58, 0)
+    self.assertEquals(repeat.interval_next(now, timedelta(minutes=5)),
                       datetime(2012, 12, 10, 0, 0, 0))
 
-  def test_next_daily(self):
+  def test_daily_next(self):
+    helper_noon = repeat.daily_helper(time(12, 0, 0))
+    helper_midnight = repeat.daily_helper(time(0, 0, 0))
 
     # Noon - Morning
-    src = repeat.localtime_to_utc(datetime(2012, 2, 13, 3, 21, 17))
-    result = repeat.next_daily(src)
+    now = repeat.localtime_to_utc(datetime(2012, 2, 13, 3, 21, 17))
+    result = helper_noon(now)
     self.assertEquals(result, datetime(2012, 2, 13, 20, 0))
 
     # Noon - Evening
-    src = repeat.localtime_to_utc(datetime(2012, 2, 13, 17, 21, 17))
-    result = repeat.next_daily(src)
+    now = repeat.localtime_to_utc(datetime(2012, 2, 13, 17, 21, 17))
+    result = helper_noon(now)
     self.assertEquals(result, datetime(2012, 2, 14, 20, 0))
 
     # Noon - Month/Year wrap
-    src = repeat.localtime_to_utc(datetime(2012, 12, 31, 23, 59, 59))
-    result = repeat.next_daily(src)
+    now = repeat.localtime_to_utc(datetime(2012, 12, 31, 23, 59, 59))
+    result = helper_noon(now)
     self.assertEquals(result, datetime(2013, 1, 1, 20, 0))
 
     # Midnight - Morning
-    src = repeat.localtime_to_utc(datetime(2012, 2, 13, 3, 21, 17))
-    result = repeat.next_daily(src, time(0, 0, 0))
+    now = repeat.localtime_to_utc(datetime(2012, 2, 13, 3, 21, 17))
+    result = helper_midnight(now)
     self.assertEquals(result, datetime(2012, 2, 14, 8, 0))
 
     # Midnight - Evening
-    src = repeat.localtime_to_utc(datetime(2012, 2, 13, 13, 21, 17))
-    result = repeat.next_daily(src, time(0, 0, 0))
+    now = repeat.localtime_to_utc(datetime(2012, 2, 13, 13, 21, 17))
+    result = helper_midnight(now)
     self.assertEquals(result, datetime(2012, 2, 14, 8, 0))
 
     # Midnight - Midnight
-    src = repeat.localtime_to_utc(datetime(2012, 2, 13, 0, 0, 0))
-    result = repeat.next_daily(src, time(0, 0, 0))
+    now = repeat.localtime_to_utc(datetime(2012, 2, 13, 0, 0, 0))
+    result = helper_midnight(now)
     self.assertEquals(result, datetime(2012, 2, 14, 8, 0))
 
     # Odd Time
-    src = repeat.localtime_to_utc(datetime(2012, 2, 13, 3, 21, 17))
-    result = repeat.next_daily(src, time(13, 37, 19))
+    now = repeat.localtime_to_utc(datetime(2012, 2, 13, 3, 21, 17))
+    result = repeat.daily_next(now, time(13, 37, 19))
     self.assertEquals(result, datetime(2012, 2, 13, 21, 37, 19))
 
 

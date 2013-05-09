@@ -2,7 +2,7 @@
 
 from twisted.internet import reactor
 
-import monitor
+import monitor.setup
 
-monitor.setup()
+monitor.setup.setup()
 reactor.run()

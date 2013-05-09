@@ -8,12 +8,18 @@ from twisted.internet import reactor
 
 class Status:
 
-  def __init__(self, log_handler, log_stream):
+  def __init__(self, config, log_handler, log_stream):
+    self._config = config
     self._values = { 'revision': 1 }
     self._notifications = []
     self._log_handler = log_handler
     self._log_stream = log_stream
     self._pending_notify = None
+
+    # Copy select parts of the config into the status.
+    for tag in ('buttons', 'cameras', 'emails', 'hosts'):
+      uri = 'status://%s' % tag
+      self.set(uri, config.get(tag, {}))
 
   def notify_handler(self):
     self._pending_notify = None
@@ -34,8 +40,8 @@ class Status:
   def createNotification(self, revision=None):
     """Create a deferred that's called when status is next updated.
 
-       If an outdated revision is provided, we will call back right away. Otherwise,
-       revision is ignored.
+       If an outdated revision is provided, we will call back right away.
+       Otherwise, revision is ignored.
     """
     d = defer.Deferred()
 
@@ -43,7 +49,7 @@ class Status:
     if revision is not None and revision < self._values['revision']:
       reactor.callLater(0, d.callback, self)
     else:
-      # Attach to our notifications list, and setup removal from list when needed.
+      # Attach to our notifications list, and setup removal from list.
       self._notifications.append(d)
       d.addBoth(self._notification_ended, d)
 
@@ -64,6 +70,9 @@ class Status:
     PREFIX = 'status://'
     assert(uri.startswith(PREFIX))
     return uri[len(PREFIX):].split('/')
+
+  def get_config(self):
+    return copy.deepcopy(self._config)
 
   def get(self, uri=None):
     values = self._values

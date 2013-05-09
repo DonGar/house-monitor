@@ -88,7 +88,10 @@
 
   // URLs to download on a regular base.
   // interval:
-  //   "daily" is the only value supported currently.
+  //   "daily" means do something once a day.
+  //
+  //   "interval" means do something every X time duration measured from
+  //              midnight of the current day.
   //
   // time:
   //   "sunset", "sunrise", and "12:00:00" are currently supported.

@@ -39,90 +39,102 @@ def datetime_to_seconds_delay(utc_now, future):
   return delta.total_seconds()
 
 
-def next_sunrise(latitude, longitude):
+def sunrise_next(utc_now, latitude, longitude):
   """Next sunrise (today or tomorrow)"""
 
   obs = ephem.Observer()
   obs.lat = latitude
   obs.long = longitude
-
-  while True:
-    utc_now = datetime.utcnow()
-    obs.date = utc_now
-    result = obs.next_rising(ephem.Sun()).datetime()
-    yield datetime_to_seconds_delay(utc_now, result)
+  obs.date = utc_now
+  return obs.next_rising(ephem.Sun()).datetime()
 
 
-def next_sunset(latitude, longitude):
+def sunrise_helper(latitude, longitude):
+  return lambda now: sunrise_next(now, latitude, longitude)
+
+
+def sunset_next(utc_now, latitude, longitude):
   """Next sunset (today or tomorrow)"""
 
   obs = ephem.Observer()
   obs.lat = latitude
   obs.long = longitude
-
-  while True:
-    utc_now = datetime.utcnow()
-    obs.date = utc_now
-    result = obs.next_setting(ephem.Sun()).datetime()
-    yield datetime_to_seconds_delay(utc_now, result)
+  obs.date = utc_now
+  return obs.next_setting(ephem.Sun()).datetime()
 
 
-def next_interval(interval=timedelta(minutes=5)):
+def sunset_helper(latitude, longitude):
+  return lambda now: sunset_next(now, latitude, longitude)
+
+
+def interval_next(utc_now, interval=timedelta(minutes=5)):
   """Return the next even interval in a naive utc timestamp."""
 
   # Make sure interval is > 0.
   interval = max(interval, timedelta(seconds=1))
 
-  while True:
-    utc_now = datetime.utcnow()
+  # Start results at UTC midnight, work forward.
+  result = datetime.combine(utc_now.date(), time())
+  while result < utc_now:
+    result += interval
 
-    # Start results at UTC midnight, work forward.
-    result = datetime.combine(utc_now.date(), time())
-    while result < utc_now:
-      result += interval
-
-    yield datetime_to_seconds_delay(utc_now, result)
+  return result
 
 
-def next_daily(daytime=time(12, 0, 0)):
+def interval_helper(interval):
+  return lambda now: interval_next(now, interval)
+
+
+def daily_next(utc_now, daytime=time(12, 0, 0)):
   """Return the next noon (localtime) in a naive utc timestamp."""
 
-  while True:
-    utc_now = datetime.utcnow()
+  def _daily_next_recursive(utc_in):
+    local_in = utc_to_localtime(utc_in)
+    local_time = datetime.combine(local_in.date(), daytime)
+    utc_time = localtime_to_utc(local_time)
 
-    def _next_daily_recursive(utc_in):
-      local_in = utc_to_localtime(utc_in)
-      local_time = datetime.combine(local_in.date(), daytime)
-      utc_time = localtime_to_utc(local_time)
+    if utc_time > utc_now:
+      return utc_time
 
-      if utc_time > utc_now:
-        return utc_time
+    return _daily_next_recursive(utc_in + timedelta(hours=12))
 
-      return _next_daily_recursive(utc_in + timedelta(hours=12))
-
-    result = _next_daily_recursive(utc_now)
-    yield datetime_to_seconds_delay(utc_now, result)
+  return _daily_next_recursive(utc_now)
 
 
-def call_repeating(next_call, work, *args, **kwargs):
+def daily_helper(daytime):
+  return lambda now: daily_next(now, daytime)
+
+
+def call_repeating(timing_helper, work, *args, **kwargs):
   """Call a function repeatedly.
 
   Args:
-    next_call: A function which accepts a datetime for 'now', and returns
-               the next time at which to run.
+    timing_helper: A function which accepts a datetime() for the current
+        time, and returns a datetime telling when the work function should
+        next be called.
+
     work: A function to be called at repeating intervals.
           Passed *args, **kwargs.
   """
+
+  def timing_helper_to_seconds_delay():
+    utc_now = datetime.utcnow()
+    result = timing_helper(utc_now)
+    return datetime_to_seconds_delay(utc_now, result)
 
   def do_work_repeating():
     # Don't let an error doing the work prevent the job from repeating.
     try:
       work(*args, **kwargs)
-    except Exception as e:
+    except Exception:
       log.err()
 
-    task.deferLater(reactor, next(next_call), do_work_repeating)
+    task.deferLater(reactor,
+                    timing_helper_to_seconds_delay(),
+                    do_work_repeating)
 
   # Setup initial call to do_work_repeating
-  task.deferLater(reactor, next(next_call), do_work_repeating)
+  task.deferLater(reactor,
+                  timing_helper_to_seconds_delay(),
+                  do_work_repeating)
 
