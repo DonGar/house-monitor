@@ -129,6 +129,22 @@
       "behavior": "mirror",
       "src": "status://hosts/<hostname>/up",
       "dest": "status://buttons/combined/light"
-    }
+    },
+    {
+      // Request a URL on a repeating interval.
+      "behavior": "repeating",
+      "interval": "daily",
+      "time": "sunset", // "sunset", "sunrise", "12:34:56"
+      "url": "http://wonderful/url"
+    },
+    {
+      // Request a URL on a repeating interval.
+      "behavior": "repeating",
+      "interval": "interval",
+      "time": "00:05:00", // Repeat all day every X time periods.
+      "url": "http://wonderful/url"
+    },
+
+
   ]
 }
