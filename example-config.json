@@ -15,7 +15,8 @@
 
     // Settings used to send email.
     "email": {
-      "server": "smtp.gmail.com:587",
+      "server": "smtp.gmail.com",
+      "port": 587,
       "user": "foo@gmail.com",
       "password": "",  // For GMail, I suggest an Application Specific Password
       "from": "foo@gmail.com",
@@ -61,7 +62,12 @@
         "to": "",  // If not present, defaults to server/email/to
         "subject": "",
         "body": "",
-        "attachment": []
+        "attachment": [
+          {
+            "url": "http://resource/url",
+            "archive_name": "foo.{time}.jpg"
+          }
+        ]
       }
   },
 
@@ -77,7 +83,6 @@
   //
   "hosts": {
     "<hostname>": {
-      "up": false,
       "action": {
         "wake": "wake_handler?target=00:25:22:CF:01:31",
         "sleep": "http://foo/bar"
@@ -118,7 +123,7 @@
       "interval": "daily",
       "time": "12:00:00",
       "url": "http://kitchen/snapshot.cgi?user=guest&pwd=",
-      "download_name": "daily.%d.jpg",
+      "download_name": "daily.{time}.jpg",
       "comment": "Take a snapshot of the front door at noon.",
     },
   ],
@@ -144,7 +149,10 @@
       "time": "00:05:00", // Repeat all day every X time periods.
       "url": "http://wonderful/url"
     },
-
-
+    {
+      "behavior": "watch",
+      "watch": "status://buttons/basic/pushed/",
+      "url": "http://wonderful/url"
+    }
   ]
 }

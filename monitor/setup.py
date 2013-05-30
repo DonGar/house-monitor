@@ -48,7 +48,7 @@ def get_page_wrapper(url, **kwargs):
 
 
 def download_page_wrapper(download_pattern, url, **kwargs):
-  download_name = download_pattern % time.time()
+  download_name = download_pattern.format(time=int(time.time()))
 
   logging.info('Started download %s -> %s', url, download_name)
 

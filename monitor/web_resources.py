@@ -12,11 +12,13 @@ from email import Encoders
 import os
 
 
+from twisted.web.client import getPage
 from twisted.internet import base
 from twisted.internet import defer
 from twisted.internet import error
 from twisted.internet import reactor
 from twisted.internet import task
+from twisted.python.urlpath import URLPath
 from twisted.web import server
 from twisted.web.resource import Resource
 from twisted.web.util import redirectTo
@@ -46,57 +48,67 @@ class _ConfigActionHandler(_ConfigHandler):
     item_id = request.args['id'][0]
     action = request.args.get('action', [None])[0]
 
-    redirect = self.handle_action(item_id, action)
+    redirect = self.handle_action(request, item_id, action)
 
     if redirect:
       return redirectTo(redirect.encode('ascii'), request)
 
-    return "Success"
+    return 'Success'
 
-  def handle_action(self, _item_id, _action):
+  def handle_action(self, request, _item_id, _action):
     raise Exception('handle_action not implemented.')
 
 
 class Button(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, item_id, action):
-    if action is None:
-      action = 'on'
-
-    assert action in ('on', 'off')
+  def handle_action(self, request, item_id, action):
 
     # Rmember when the button was pushed
-    status_pushed = 'status://buttons/%s/pushed' % item_id
-    self.status.set(status_pushed, int(time.time()))
+    status_pushed_uri = 'status://buttons/%s/pushed' % item_id
+    self.status.set(status_pushed_uri, int(time.time()))
 
-    # Remember if it was turned on or off.
-    button_state = 'status://buttons/%s/state' % item_id
-    self.status.set(button_state, action == 'on')
+    if action is None:
+      action = 'pushed'
+
+    action_to_take = None
+    try:
+      action_uri = 'status://buttons/%s/action/%s' % (item_id, action)
+      action_look_up_uri = self.status.get(action_uri)
+      action_uri_full = URLPath.fromRequest(request).click(action_look_up_uri)
+      print 'Performing action %s' % action_uri_full
+      getPage(str(action_uri_full))
+    except KeyError:
+      pass # The action doesn't exist
 
 
 class Email(_ConfigHandler):
 
   def __init__(self, status):
     _ConfigHandler.__init__(self, status)
-    self.email_config = status.get_config()['server']['email']
 
   def render_POST(self, request):
     item_id = request.args['id'][0]
     uri = 'status://emails/%s' % item_id
-    node = self.status.get(uri)
 
-    email_server, port = self.email_config['server'].split(':')
-    port = int(port)
+    server_config = self.status.get_config()['server']['email']
+    email_config = self.status.get(uri)
+    attachements_config = email_config.get('attachment', [])
 
-    user = self.email_config['user']
-    password = self.email_config['password']
+    email_server = server_config['server']
+    port = int(server_config['port'])
 
-    e_from = self.email_config['from']
-    to = node.get('to', self.email_config['to'])
-    subject = node.get('subject', '')
-    body = node.get('body', '')
-    attachements = node.get('attachment', [])
+    user = server_config['user']
+    password = server_config['password']
+
+    e_from = server_config['from']
+    to = email_config.get('to', server_config['to'])
+    subject = email_config.get('subject', '')
+    body = email_config.get('body', '')
+
+    # Download attachements
+    for attachment_config in attachements_config:
+      pass
 
     # Send the mail.
     msg = MIMEMultipart()
@@ -111,7 +123,7 @@ class Email(_ConfigHandler):
     # part.set_payload(open(attach, 'rb').read())
     # Encoders.encode_base64(part)
     # part.add_header('Content-Disposition',
-    #                 'attachment; filename="%s"' % os.path.basename(attach))
+    #                 'attachment; filename='%s'' % os.path.basename(attach))
     # msg.attach(part)
 
     mailServer = smtplib.SMTP(email_server, port)
@@ -122,11 +134,13 @@ class Email(_ConfigHandler):
     mailServer.sendmail(e_from, to, msg.as_string())
     mailServer.quit()
 
+    return 'Success'
+
 
 class Host(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, item_id, action):
+  def handle_action(self, request, item_id, action):
     assert action in (None, 'sleep', 'wake')
 
     uri = 'status://hosts/%s' % item_id
@@ -151,7 +165,7 @@ class Log(_ConfigHandler):
     return server.NOT_DONE_YET
 
   def send_update(self, status, request):
-    request.setHeader("content-type", "application/json")
+    request.setHeader('content-type', 'application/json')
     request.write(json.dumps(status.get_log(), sort_keys=True, indent=4))
     request.finish()
     return status
@@ -161,7 +175,7 @@ class Restart(_ConfigHandler):
 
   def render_POST(self, _request):
     reactor.stop()
-    return "Success"
+    return 'Success'
 
 
 class Status(_ConfigHandler):
@@ -178,7 +192,7 @@ class Status(_ConfigHandler):
     return server.NOT_DONE_YET
 
   def send_update(self, status, request):
-    request.setHeader("content-type", "application/json")
+    request.setHeader('content-type', 'application/json')
     request.write(json.dumps(status.get(), sort_keys=True, indent=4))
     request.finish()
     return status
@@ -187,7 +201,7 @@ class Status(_ConfigHandler):
 class Wake(_ConfigHandler):
 
   def render_POST(self, request):
-    for mac in request.args["target"]:
+    for mac in request.args['target']:
       logging.info('received request for: %s', mac)
       wake_on_lan.wake_on_lan(mac)
-    return "Success"
+    return 'Success'
