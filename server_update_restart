@@ -2,8 +2,8 @@
 
 while true; do
     /opt/bin/git pull
-    ./run_server 2>&1 | nail -s "house-monitor output" dgarrett@acm.org
-    
+    ./run_server 2>&1
+
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         exit
     fi
