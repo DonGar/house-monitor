@@ -3,6 +3,9 @@
   // General server side configuration.
   "server": {
 
+    // Port to serve from (8080 is default)
+    "port": 1234,
+
     // Directory in which downloaded files are saved.
     "downloads": "<directory_name>",
 
