@@ -6,9 +6,10 @@ import logging
 
 from twisted.web.client import getPage
 
+from monitor.util import action
 from monitor.util import repeat
 
-BEHAVIORS = ('mirror', 'interval')
+BEHAVIORS = ('mirror', 'daily', 'interval')
 
 def sort_rules(rules):
   # This creates a dictionary of rules indexed by behavior string.
@@ -28,13 +29,16 @@ class RulesEngine:
     self.status = status
     self.rules = status.get_config().get('rules', [])
 
-    self.mirror_rules, self.interval_rules = sort_rules(self.rules)
+    (self.mirror_rules,
+     self.daily_rules,
+     self.interval_rules) = sort_rules(self.rules)
 
     # Setup the mirroring rules.
     self.setup_mirror_processing(None)
     self.process_mirror_rules()
 
     # Setup the timer base rules.
+    self.setup_daily_rules()
     self.setup_interval_rules()
 
   # Handle Mirror Rules
@@ -44,7 +48,6 @@ class RulesEngine:
     self.process_mirror_rules()
 
   def process_mirror_rules(self):
-    print 'process_mirror_rules called'
     logging.info('process_mirror_rules called')
 
     for rule in self.mirror_rules:
@@ -52,50 +55,61 @@ class RulesEngine:
       dest = rule['dest']
       self.status.set(dest, self.status.get(src))
 
-  # Handle Interval Rules
-  def setup_interval_rules(self):
+  def _setup_repeating_helper(self, delay_helper, url, download_pattern=None):
+
+    if download_pattern:
+      # Actually start the repeating process.
+      repeat.call_repeating(delay_helper,
+                            action.download_page_wrapper,
+                            self.status,
+                            download_pattern,
+                            url)
+    else:
+      # Actually start the repeating process.
+      repeat.call_repeating(delay_helper,
+                            action.get_page_wrapper,
+                            self.status,
+                            url)
+
+
+
+
+  # Handle Daily Rules
+  def setup_daily_rules(self):
     server = self.status.get_config()['server']
     latitude = float(server['latitude'])
     longitude = float(server['longitude'])
 
-    for rule in self.interval_rules:
-      if rule['interval'] == 'daily':
-        # Once a day.
-        if rule['time'] == 'sunset':
-          delay_helper = repeat.sunset_helper(latitude, longitude)
-        elif rule['time'] == 'sunrise':
-          delay_helper = repeat.sunset_helper(latitude, longitude)
-        elif 'time' in rule:
-          hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
-          time_of_day = datetime.time(hours, minutes, seconds)
-          delay_helper = repeat.daily_helper(time_of_day)
-        else:
-          raise Exception('Unknown interval.daily time %s.' % rule['time'])
-
-      elif rule['interval'] == 'interval':
-        # Multiple times a day.
-        if 'time' in rule:
-          hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
-          interval = datetime.timedelta(hours=hours,
-                                        minutes=minutes,
-                                        seconds=seconds)
-          delay_helper = repeat.interval_helper(interval)
+    for rule in self.daily_rules:
+      logging.info('Init daily rule for %s', rule['time'])
+      # Once a day.
+      if rule['time'] == 'sunset':
+        delay_helper = repeat.sunset_helper(latitude, longitude)
+      elif rule['time'] == 'sunrise':
+        delay_helper = repeat.sunrise_helper(latitude, longitude)
       else:
-        raise Exception('Unknown interval.interval interval %s.' %
-                        rule['interval'])
+        # Else we expect time to be in the format 'hh:mm:ss'
+        hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
+        time_of_day = datetime.time(hours, minutes, seconds)
+        delay_helper = repeat.daily_helper(time_of_day)
 
       # Actually start the repeating process.
-      repeat.call_repeating(delay_helper, self.perform_interval_rule, rule)
+      self._setup_repeating_helper(delay_helper,
+                                   rule['url'].encode('ascii'),
+                                   rule.get('download_name', None))
 
-  def perform_interval_rule(self, rule):
-    url = rule['url']
-    logging.info('Started requet %s', url)
+  # Handle Interval Rules
+  def setup_interval_rules(self):
+    for rule in self.interval_rules:
+      logging.info('Init interval rule for %s', rule['time'])
+      # Multiple times a day. Expect 'time' to be in format 'hh:mm:ss'
+      hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
+      interval = datetime.timedelta(hours=hours,
+                                    minutes=minutes,
+                                    seconds=seconds)
+      delay_helper = repeat.interval_helper(interval)
 
-    def print_success(_):
-      logging.info('Downloaded %s.', url)
-
-    def print_error(error):
-      logging.error('FAILED download %s: %s.', url, error)
-
-    d = getPage(url.encode('ascii'))
-    d.addCallbacks(print_success, print_error)
+      # Actually start the repeating process.
+      self._setup_repeating_helper(delay_helper,
+                                   rule['url'].encode('ascii'),
+                                   rule.get('download_name', None))

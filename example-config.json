@@ -52,12 +52,11 @@
   },
 
   // Definitions of camera feeds to display on the website.
-  "cameras": [
-    {
-      "name": "<name>",
+  "cameras": {
+    "<name>": {
       "address": "<snapshot_url>",
     },
-  ],
+  },
 
   // http://server/email_action?id=foo
   "emails": {
@@ -140,22 +139,16 @@
     },
     {
       // Request a URL on a repeating interval.
-      "behavior": "repeating",
-      "interval": "daily",
+      "behavior": "daily",
       "time": "sunset", // "sunset", "sunrise", "12:34:56"
       "url": "http://wonderful/url"
     },
     {
       // Request a URL on a repeating interval.
-      "behavior": "repeating",
-      "interval": "interval",
+      "behavior": "interval",
       "time": "00:05:00", // Repeat all day every X time periods.
-      "url": "http://wonderful/url"
-    },
-    {
-      "behavior": "watch",
-      "watch": "status://buttons/basic/pushed/",
-      "url": "http://wonderful/url"
+      "url": "http://wonderful/url",
+      "download_name": "test-{time}.txt"
     }
   ]
 }

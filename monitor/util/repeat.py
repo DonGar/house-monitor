@@ -137,4 +137,3 @@ def call_repeating(timing_helper, work, *args, **kwargs):
   task.deferLater(reactor,
                   timing_helper_to_seconds_delay(),
                   do_work_repeating)
-

@@ -5,10 +5,7 @@ import logging
 import time
 
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
-from email import Encoders
+import email
 import os
 
 
@@ -38,6 +35,9 @@ class _ConfigHandler(Resource):
   def render_GET(self, request):
     return self.render_POST(request)
 
+  def render_POST(self, _request):
+    raise Exception('render_POST not implemented.')
+
 
 class _ConfigActionHandler(_ConfigHandler):
   """Create a handler that records a button push."""
@@ -55,7 +55,7 @@ class _ConfigActionHandler(_ConfigHandler):
 
     return 'Success'
 
-  def handle_action(self, request, _item_id, _action):
+  def handle_action(self, _request, _item_id, _action):
     raise Exception('handle_action not implemented.')
 
 
@@ -71,12 +71,11 @@ class Button(_ConfigActionHandler):
     if action is None:
       action = 'pushed'
 
-    action_to_take = None
     try:
       action_uri = 'status://buttons/%s/action/%s' % (item_id, action)
       action_look_up_uri = self.status.get(action_uri)
       action_uri_full = URLPath.fromRequest(request).click(action_look_up_uri)
-      print 'Performing action %s' % action_uri_full
+      logging.info('Performing action %s', action_uri_full)
       getPage(str(action_uri_full))
     except KeyError:
       pass # The action doesn't exist
@@ -111,13 +110,13 @@ class Email(_ConfigHandler):
       pass
 
     # Send the mail.
-    msg = MIMEMultipart()
+    msg = email.MIMEMultipart.MIMEMultipart()
 
     msg['From'] = e_from
     msg['To'] = to
     msg['Subject'] = subject
 
-    msg.attach(MIMEText(body))
+    msg.attach(email.MIMEText.MIMEText(body))
 
     # part = MIMEBase('application', 'octet-stream')
     # part.set_payload(open(attach, 'rb').read())
