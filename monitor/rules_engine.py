@@ -27,7 +27,7 @@ class RulesEngine:
 
   def __init__(self, status):
     self.status = status
-    self.rules = status.get_config().get('rules', [])
+    self.rules = status.get('status://rules', [])
 
     (self.mirror_rules,
      self.daily_rules,
@@ -71,14 +71,10 @@ class RulesEngine:
                             self.status,
                             url)
 
-
-
-
   # Handle Daily Rules
   def setup_daily_rules(self):
-    server = self.status.get_config()['server']
-    latitude = float(server['latitude'])
-    longitude = float(server['longitude'])
+    latitude = float(self.status.get('status://server/latitude'))
+    longitude = float(self.status.get('status://server/longitude'))
 
     for rule in self.daily_rules:
       logging.info('Init daily rule for %s', rule['time'])

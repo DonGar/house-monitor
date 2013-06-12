@@ -38,14 +38,11 @@ def parse_config_file():
 
 def setup_requests(status):
   # Directory in which downloaded files are saved.
-  config = status.get_config()
-  server = config['server']
+  download_dir = status.get('status://server/downloads')
+  latitude = float(status.get('status://server/latitude'))
+  longitude = float(status.get('status://server/longitude'))
 
-  download_dir = server['downloads']
-  latitude = float(server['latitude'])
-  longitude = float(server['longitude'])
-
-  for request in config.get('requests', []):
+  for request in status.get('status://requests', []):
     if request['interval'] == 'daily':
       # Once a day.
       if request['time'] == 'sunset':

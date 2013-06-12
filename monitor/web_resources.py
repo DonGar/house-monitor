@@ -90,7 +90,7 @@ class Email(_ConfigHandler):
     item_id = request.args['id'][0]
     uri = 'status://emails/%s' % item_id
 
-    server_config = self.status.get_config()['server']['email']
+    server_config = self.status.get('status://server/email')
     email_config = self.status.get(uri)
     attachements_config = email_config.get('attachment', [])
 

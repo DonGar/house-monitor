@@ -33,13 +33,14 @@ def get_page_wrapper(_status, url):
 def download_page_wrapper(status, download_pattern, url):
   """Start a download (to disk). Return a deferred for it's completion."""
 
-  config = status.get_config()
-  server = config['server']
-  download_dir = server['downloads']
+  download_dir = status.get('status://server/downloads')
 
   # This dictionary defines the field values that can be filled in.
   pattern_values = { 'time': int(time.time()) }
   download_name = download_pattern.format(**pattern_values)
+
+  # This ensures download_name contains no path information.
+  download_name = os.path.basename(download_name)
 
   description = 'Download {} -> {}'.format(url, download_name)
   logging.info('REQUESTING: {}'.format(description))
