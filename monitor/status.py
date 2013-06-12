@@ -74,12 +74,15 @@ class Status:
   def get_config(self):
     return copy.deepcopy(self._config)
 
-  def get(self, uri=None):
+  def get(self, uri=None, default_result=None):
     values = self._values
     keys = self._parse_uri(uri)
 
-    for key in keys:
-      values = values[key]
+    try:
+      for key in keys:
+        values = values[key]
+    except KeyError:
+      values = default_result
 
     return copy.deepcopy(values)
 
