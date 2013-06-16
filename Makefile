@@ -1,5 +1,7 @@
 
 
+default: lint test
+
 setup:
 	./setup_virtualenv
 
