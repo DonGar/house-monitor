@@ -2,9 +2,5 @@
 
 cd `dirname $0`
 
-# Both set it up, and update it for new dependancies
-./setup_virtualenv
-
 source bin/activate
-
-python server.py 2>&1
+python ./server.py 2>&1

@@ -2,7 +2,7 @@
 
 cd `dirname $0`
 
-python virtualenv.py .
+/usr/bin/python virtualenv.py .
 
 source bin/activate
-pip install --upgrade twisted pyephem pytz
+pip install --upgrade twisted pyephem pytz pylint
