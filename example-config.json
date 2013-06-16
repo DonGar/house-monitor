@@ -3,74 +3,50 @@
   // General server side configuration.
   "server": {
 
-    // Port to serve from (8080 is default)
+    // Optional, Port to serve from (8080 is default)
     "port": 1234,
 
     // Directory in which downloaded files are saved.
     "downloads": "<directory_name>",
 
-    // Local timezone on the server. Used for url download times.
+    // Local timezone on the server. Used for time based rules.
     "timezone": "US/Pacific",
 
-    // Latitude/Longitude of the server. Used to find sunset/sunrise times.
+    // Latitude/Longitude of the server. Used to find sunrise/sunset times.
     "latitude": "37.3861",
     "longitude": "-122.0839",
 
-    // Settings used to send email.
-    "email": {
-      "server": "smtp.gmail.com",
-      "port": 587,
-      "user": "foo@gmail.com",
-      "password": "",  // For GMail, I suggest an Application Specific Password
-      "from": "foo@gmail.com",
-      "to": "foo@gmail.com"
-    }
+    "email_address": "<default_address_email_actions>"
   },
 
   //
   // This defines handlers for buttons with ids.
   //
-  // http://server/button?id=foo
-  // http://server/button?id=foo?action=on
-  // http://server/button?id=foo?action=off
-  //
-  // 'foo' isn't present in this list, that's an error.
+  // http://server/button?id=foo  <uses default action 'pushed' if present>
+  // http://server/button?id=foo?action=action_name
   //
   // When a button is invoked the field "pushed" will be updated with the
   // current time.
   //
-  // When a button is pushed, the field "state" will be set to true or false
-  // based on the action of "on" or "off". Default action is "on".
-  //
   "buttons": {
-    "basic": {
+    "<button_name>": {
+      "actions": {
+        "action_name": <action>
+        ...
+      }
     },
-    "prepopulated": {
-      "pushed": 123,
-      "state": false
-    }
   },
 
   // Definitions of camera feeds to display on the website.
   "cameras": {
     "<name>": {
-      "address": "<snapshot_url>",
-    },
-  },
-
-  // http://server/email_action?id=foo
-  "emails": {
-    "foo": {
-        "to": "",  // If not present, defaults to server/email/to
-        "subject": "",
-        "body": "",
-        "attachment": [
-          {
-            "url": "http://resource/url",
-            "archive_name": "foo.{time}.jpg"
-          }
-        ]
+      "<hostname>": "<fqdn>", // Defaults to 'name'
+      "actions": {
+        "action_name": <action>
+        ...
       }
+    },
+    ...
   },
 
   //
@@ -84,71 +60,93 @@
   //   host?id=<id>&command=<wake|sleep>
   //
   "hosts": {
-    "<hostname>": {
-      "action": {
-        "wake": "wake_handler?target=00:25:22:CF:01:31",
-        "sleep": "http://foo/bar"
+    "<name>": {
+      "<hostname>": "<fqdn>",
+      "address": "<snapshot_url>",
+      "actions": {
+        "action_name": <action>
+        ...
       }
     },
-    "<hostname>": {}
+    ...
   },
-
-  // URLs to download on a regular base.
-  // interval:
-  //   "daily" means do something once a day.
-  //
-  //   "interval" means do something every X time duration measured from
-  //              midnight of the current day.
-  //
-  // time:
-  //   "sunset", "sunrise", and "12:00:00" are currently supported.
-  //   12:00:00 will be handled based on the local timezone.
-  //
-  // url:
-  //   url to request. The results are discarded if download_name not
-  //   present.
-  //
-  // download_name: (optional)
-  //   filename to save the downloaded results into. It should contain a
-  //   '%d' which will be replaced with a timestamp at each download.
-  //   The downloaded file will be stored in the downloads directory
-  //   specified above.
-
-  "requests": [
-    {
-      "interval": "daily",
-      "time": "sunset",
-      "url": "http://kitchen/decoder_control.cgi?user=guest&pwd=&command=95",
-      "comment": "Enable Kitchen camera's IR at Sunset.",
-    },
-    {
-      "interval": "daily",
-      "time": "12:00:00",
-      "url": "http://kitchen/snapshot.cgi?user=guest&pwd=",
-      "download_name": "daily.{time}.jpg",
-      "comment": "Take a snapshot of the front door at noon.",
-    },
-  ],
 
   "rules": [
     {
-      // Mirror the field in the status to another field in the status.
-      "behavior": "mirror",
-      "src": "status://hosts/<hostname>/up",
-      "dest": "status://buttons/combined/light"
+      // If the status changes, fire the action.
+      "behavior": "watch",
+      "value": "status://some/status",
+      "trigger": <any_json_value>, // optional, only fire if changes to trigger.
+      "action": <action>
     },
     {
       // Request a URL on a repeating interval.
       "behavior": "daily",
       "time": "sunset", // "sunset", "sunrise", "12:34:56"
-      "url": "http://wonderful/url"
+      "action": <action>
     },
     {
       // Request a URL on a repeating interval.
       "behavior": "interval",
-      "time": "00:05:00", // Repeat all day every X time periods.
-      "url": "http://wonderful/url",
-      "download_name": "test-{time}.txt"
+      "time": "00:05:00", // Repeat every X time periods from previous midnight.
+      "action": <action>
+    }
+  ]
+}
+
+
+// Actions
+
+// A status URL means perform an action from another location in status.
+"status://path/to/action",
+
+// An external URL is a shortcut version of "fetch_url" with no download_name.
+"http://some_wonderful/url",
+
+// A list contains a list of actions to be performed sequentially.
+[<action>, ...]
+
+{
+  // Fetch the URL listed.
+  //
+  // If a download_name is present, save contents in directory
+  // specified by config://server/downloads.
+  //
+  // The field {time} (if present) will be replaced with the results of
+  // time.time().
+  //
+  "action": "fetch_url",
+  "url": "http://wonderful/url",
+  "download_name": "test-{time}.txt"   // Optional
+},
+{
+  // Set data into a status URL. Either copy from src, or from value.
+  "action": "set",
+  "src": "status://status/location",   // "src" OR "value", not both.
+  "value": <any_json_value>,
+  "dest": "status://status/location/"
+},
+{
+  "action": "wol",
+  "mac": "11:22:33:44:55:66"
+},
+{
+  "action": "ping",
+  "hostname": "<hostname>",
+  "store": "status://where/to/update"
+},
+{
+  "action": "email",
+
+  "to": "",                      // Defaults to server/default_email
+  "subject": "",                 // Default ""
+  "body": "",                    // Default ""
+  "attachments": [               // Optional section.
+    {
+      "url": "http://resource/url",
+      "download_name": "foo.{time}.jpg",
+      "preserve": true           // Do we keep a copy in downloads
+                                 //   default true.
     }
   ]
 }

@@ -7,7 +7,7 @@ from datetime import time
 from datetime import timedelta
 from pytz import timezone
 
-import repeat
+from monitor.util import repeat
 
 LATITUDE = 37.3861
 LONGITUDE = -122.0839
