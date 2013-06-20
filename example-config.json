@@ -133,7 +133,7 @@
 {
   "action": "ping",
   "hostname": "<hostname>",
-  "store": "status://where/to/update"
+  "dest": "status://where/to/update"
 },
 {
   "action": "email",

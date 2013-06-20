@@ -36,51 +36,6 @@ def parse_config_file():
       return json.load(f)
 
 
-def setup_requests(status):
-  # Directory in which downloaded files are saved.
-  download_dir = status.get('status://server/downloads')
-  latitude = float(status.get('status://server/latitude'))
-  longitude = float(status.get('status://server/longitude'))
-
-  for request in status.get('status://requests', []):
-    if request['interval'] == 'daily':
-      # Once a day.
-      if request['time'] == 'sunset':
-        delay_helper = repeat.sunset_helper(latitude, longitude)
-      elif request['time'] == 'sunrise':
-        delay_helper = repeat.sunset_helper(latitude, longitude)
-      elif 'time' in request:
-        hours, minutes, seconds = [int(i) for i in request['time'].split(':')]
-        time_of_day = datetime.time(hours, minutes, seconds)
-        delay_helper = repeat.daily_helper(time_of_day)
-      else:
-        raise Exception('Unknown requests time %s.' % request['time'])
-
-    elif request['interval'] == 'interval':
-      # Multiple times a day.
-      if 'time' in request:
-        hours, minutes, seconds = [int(i) for i in request['time'].split(':')]
-        interval = datetime.timedelta(hours=hours,
-                                      minutes=minutes,
-                                      seconds=seconds)
-        delay_helper = repeat.interval_helper(interval)
-    else:
-      raise Exception('Unknown requests interval %s.' % request['interval'])
-
-    if 'download_name' in request:
-      download_pattern = os.path.join(download_dir, request['download_name'])
-      repeat.call_repeating(delay_helper,
-                            action.download_page_wrapper,
-                            status,
-                            download_pattern,
-                            request['url'].encode('ascii'))
-    else:
-      repeat.call_repeating(delay_helper,
-                            action.get_page_wrapper,
-                            status,
-                            request['url'].encode('ascii'))
-
-
 def setupLogging():
 
   formatter = logging.Formatter(
@@ -89,7 +44,7 @@ def setupLogging():
 
   # Setup stdout logging
   stdout_handler = logging.StreamHandler(sys.stdout)
-  stdout_handler.setLevel(logging.INFO)
+  stdout_handler.setLevel(logging.DEBUG)
   stdout_handler.setFormatter(formatter)
 
   # Setup buffer logging (for web display)
@@ -119,14 +74,12 @@ def setup():
   status = Status(config, log_handler, log_buffer)
   engine = RulesEngine(status)
 
-  setup_requests(status)
   monitor.up.setup(status)
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
   root.putChild("button", monitor.web_resources.Button(status))
-  root.putChild("email", monitor.web_resources.Email(status))
   root.putChild("host", monitor.web_resources.Host(status))
   root.putChild("log_handler", monitor.web_resources.Log(status))
   root.putChild("restart", monitor.web_resources.Restart(status))

@@ -126,6 +126,7 @@ def call_repeating(timing_helper, work, *args, **kwargs):
     # Don't let an error doing the work prevent the job from repeating.
     try:
       work(*args, **kwargs)
+    # pylint: disable=W0703
     except Exception:
       log.err()
 
