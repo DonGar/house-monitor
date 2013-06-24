@@ -1,7 +1,12 @@
 #!/usr/bin/python
 
 import logging
+import os
+import shutil
+import tempfile
 import urlparse
+
+from twisted.internet import defer
 
 import monitor.status
 import monitor.util.action
@@ -55,7 +60,7 @@ def _handle_ping_action(status, action):
   result = monitor.util.ping.ping(action['hostname'])
   status.set(action['dest'], result)
 
-
+# pylint: disable=R0914
 def _handle_email_action(status, action):
   default_to = status.get('status://server/email_address', None)
   to = action.get('to', default_to)
@@ -63,10 +68,51 @@ def _handle_email_action(status, action):
   body = action.get('body', '')
   attachments = action.get('attachments', None)
 
-  logging.debug('Action: Email %s about %s with %s, %s',
-                to, subject, body, attachments)
+  description = ('Action: Email %s about %s with %s, %s' %
+                 (to, subject, body, attachments))
+  logging.debug(description)
 
-  monitor.util.sendemail.email(status, to, subject, body, [])
+  # If there are no attachments, handle that an exit.
+  if not attachments:
+    monitor.util.sendemail.email(status, to, subject, body, [])
+    return
+
+  # Setup the downloads.
+  tempdir = tempfile.mkdtemp()
+  filenames = []
+  attachment_deferreds = []
+
+  for attachement in attachments:
+    url = attachement['url']
+
+    # Find the name. Path is tempdir, or system downloads directory.
+    filename = monitor.util.action.find_download_name(
+        status,
+        attachement['download_name'],
+        tempdir if not attachement.get('preserve', False) else None)
+
+    #Schedule the download.
+    d = monitor.util.action.download_page_wrapper(url, filename)
+    filenames.append(filename)
+    attachment_deferreds.append(d)
+
+  # Create handler to send email when downloads compelete.
+  def _handle_email_attachments_collected(result):
+    for success, _ in result:
+      assert success
+
+    monitor.util.sendemail.email(status, to, subject, body, filenames)
+    return None
+
+  def _cleanup(result):
+    shutil.rmtree(tempdir)
+    return result
+
+  # Setup deferred for when all downloads complete, and attach handlers.
+  collect = defer.DeferredList(attachment_deferreds)
+  collect.addCallback(_handle_email_attachments_collected)
+  collect.addBoth(_cleanup)
+  monitor.util.action.attach_logging_callbacks(collect, description)
 
 
 def handle_action(status, action):

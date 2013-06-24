@@ -31,8 +31,9 @@ def get_page_wrapper(url):
   attach_logging_callbacks(d, description)
   return d
 
-def find_download_name(status, download_pattern):
-  download_dir = status.get('status://server/downloads')
+def find_download_name(status, download_pattern, download_dir=None):
+  if not download_dir:
+    download_dir = status.get('status://server/downloads')
 
   # This dictionary defines the field values that can be filled in.
   pattern_values = { 'time': int(time.time()) }

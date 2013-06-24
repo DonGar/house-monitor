@@ -10,7 +10,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 def email(status, to, subject, body, attachments):
-  logging.debug('Action: Email %s about %s: %s', to, subject, body)
+  logging.debug('Action: Email %s about %s: %s: %s',
+                to, subject, body, attachments)
 
   me = status.get('status://server/email_address')
 

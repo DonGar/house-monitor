@@ -12,7 +12,7 @@ lint:
 	pylint --rcfile pylintrc server.py monitor
 
 test:
-	python -m unittest discover -p \*_unittest.py
+	python -m unittest discover
 
 clean:
 	find . -iname \*.pyc -print0 | xargs -0r rm
