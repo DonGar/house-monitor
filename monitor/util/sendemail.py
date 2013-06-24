@@ -31,9 +31,12 @@ def email(status, to, subject, body, attachments):
       img = MIMEImage(fp.read())
     msg.attach(img)
 
+  to_list = to.split(',')
+  to_list = [a.strip() for a in to_list]
+
   # Send the email via our own SMTP server.
   s = smtplib.SMTP('localhost')
-  s.sendmail(me, to, msg.as_string())
+  s.sendmail(me, to_list, msg.as_string())
   s.quit()
 
 

@@ -30,7 +30,21 @@ class TestEmailUtil(unittest.TestCase):
       monitor.util.sendemail.email(self.status, to, subject, body, attachments)
       mocked.assert_called_once_with(mock.ANY,
                                      'server@address.com',
-                                     'dest@address.com',
+                                     ['dest@address.com'],
+                                     mock.ANY)
+
+  def test_multi_email(self):
+    """Test Sending Email."""
+    to = 'dest@address.com, second@address.com'
+    subject = 'msg subject'
+    body = 'msg body'
+    attachments = []
+
+    with mock.patch('smtplib.SMTP.sendmail', autospec=True) as mocked:
+      monitor.util.sendemail.email(self.status, to, subject, body, attachments)
+      mocked.assert_called_once_with(mock.ANY,
+                                     'server@address.com',
+                                     ['dest@address.com', 'second@address.com'],
                                      mock.ANY)
 
 
