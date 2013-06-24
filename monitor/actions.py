@@ -131,13 +131,16 @@ def handle_action(status, action):
   parsed_url = None
   try:
     parsed_url = urlparse.urlparse(action)
-  except TypeError:
+  except (TypeError, AttributeError):
     # This means the node isn't a string, and thus not a URL.
     pass
 
   # If it's a status://url fetch the new node and act on it.
   if parsed_url and parsed_url.scheme == 'status':
-    handle_action(status, status.get(action))
+    referenced_action = status.get(action)
+    if referenced_action is None:
+      raise InvalidAction('Status URL: %s failed to resolve.' % action)
+    handle_action(status, referenced_action)
     return
 
   # If it's any other type of url, fetch it.
