@@ -13,7 +13,7 @@ class TestEmailUtil(unittest.TestCase):
 
     status_values = {
       'server': {
-        'email_address': 'default@address.com',
+        'email_address': 'server@address.com',
       },
     }
 
@@ -26,8 +26,13 @@ class TestEmailUtil(unittest.TestCase):
     body = 'msg body'
     attachments = []
 
-    with mock.patch('smtplib.SMTP.sendmail') as mocked:
+    with mock.patch('smtplib.SMTP.sendmail', autospec=True) as mocked:
       monitor.util.sendemail.email(self.status, to, subject, body, attachments)
+      mocked.assert_called_once_with(mock.ANY,
+                                     'server@address.com',
+                                     'dest@address.com',
+                                     mock.ANY)
+
 
 
 if __name__ == '__main__':

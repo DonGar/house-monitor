@@ -72,6 +72,8 @@ def setup():
   # Create our global shared status
   config = parse_config_file()
   status = Status(config, log_handler, log_buffer)
+
+  # pylint: disable=W0612
   engine = RulesEngine(status)
 
   monitor.up.setup(status)

@@ -24,11 +24,11 @@ def email(status, to, subject, body, attachments):
 
   # Assume we know that the image files are all in PNG format
   for filename in attachments:
-      # Open the files in binary mode.  Let the MIMEImage class automatically
-      # guess the specific image type.
-      with open(filename, 'rb') as fp:
-        img = MIMEImage(fp.read())
-      msg.attach(img)
+    # Open the files in binary mode.  Let the MIMEImage class automatically
+    # guess the specific image type.
+    with open(filename, 'rb') as fp:
+      img = MIMEImage(fp.read())
+    msg.attach(img)
 
   # Send the email via our own SMTP server.
   s = smtplib.SMTP('localhost')
