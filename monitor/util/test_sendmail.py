@@ -9,7 +9,7 @@ import monitor.util.sendemail
 class TestEmailUtil(unittest.TestCase):
 
   def __init__(self, *args, **kwargs):
-    unittest.TestCase.__init__(self, *args, **kwargs)
+    super(TestEmailUtil, self).__init__(*args, **kwargs)
 
     status_values = {
       'server': {

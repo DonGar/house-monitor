@@ -7,6 +7,22 @@ import urlparse
 from twisted.internet import defer
 from twisted.internet import reactor
 
+class StatusDeferred(defer.Deferred):
+
+  def __init__(self, status, url, force_update=False):
+    defer.Deferred.__init__(self)
+    self._status = status
+    self._url = url
+    self._force_update = force_update
+
+    self._value = status.get(url)
+
+  def changed(self):
+    return self._force_update or self.value() != self._value
+
+  def value(self):
+    return self._status.get(self._url)
+
 
 class Status:
 
@@ -15,50 +31,42 @@ class Status:
     self._values['revision'] = 1
 
     self._notifications = []
+    self._pending_notify = None
+
     self._log_handler = log_handler
     self._log_stream = log_stream
-    self._pending_notify = None
 
-  def notify_handler(self):
+  def _notify_handler(self):
     self._pending_notify = None
     for deferred in self._notifications[:]:
-      deferred.callback(self)
+      if deferred.changed():
+        self._notifications.remove(deferred)
+        deferred.callback(deferred.value())
 
-  def notify(self):
-    self._values['revision'] += 1
-    logging.info('New revision %d', self.revision())
+  def _notify(self):
+    if self._notifications:
+      # This small delay notifying clients allows multiple updates to
+      # go through in a single notification.
+      if not self._pending_notify:
+        self._pending_notify = reactor.callLater(0.05, self._notify_handler)
+      else:
+        self._pending_notify.reset(0.05)
 
-    # This small delay notifying clients allows multiple updates to
-    # go through in a single notification.
-    if not self._pending_notify:
-      self._pending_notify = reactor.callLater(0.05, self.notify_handler)
-    else:
-      self._pending_notify.reset(0.05)
-
-  def createNotification(self, revision=None):
+  def createNotification(self, revision, url=None):
     """Create a deferred that's called when status is next updated.
 
        If an outdated revision is provided, we will call back right away.
        Otherwise, revision is ignored.
     """
-    d = defer.Deferred()
+    force_update = revision != self.revision()
 
-    # If revision specified and outdated, schedule an update callback shortly.
-    if revision is not None and revision < self._values['revision']:
-      reactor.callLater(0, d.callback, self)
-    else:
-      # Attach to our notifications list, and setup removal from list.
-      self._notifications.append(d)
-      d.addBoth(self._notification_ended, d)
+    d = StatusDeferred(self, url, force_update)
+    self._notifications.append(d)
+
+    if force_update:
+      self._notify()
 
     return d
-
-  def _notification_ended(self, result, deferred):
-    self._notifications.remove(deferred)
-    return result
-
-  def revision(self):
-    return self._values['revision']
 
   def _parse_uri(self, uri):
     """status://foo/bar -> [foo, bar]"""
@@ -68,6 +76,9 @@ class Status:
     PREFIX = 'status://'
     assert(uri.startswith(PREFIX))
     return uri[len(PREFIX):].split('/')
+
+  def revision(self):
+    return self._values['revision']
 
   def get(self, uri=None, default_result=None):
     values = self._values
@@ -90,8 +101,13 @@ class Status:
       values = values[key]
 
     if final_key not in values or values[final_key] != update_value:
+      # Set the new value
       values[final_key] = copy.deepcopy(update_value)
-      self.notify()
+
+      # Increment our revision, and notify listeners.
+      self._values['revision'] += 1
+      logging.info('New revision %d', self.revision())
+      self._notify()
 
   def get_log(self):
     self._log_handler.flush()

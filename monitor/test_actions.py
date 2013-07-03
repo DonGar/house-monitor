@@ -29,7 +29,7 @@ STATUS_VALUES = {
 class TestActionHandlers(unittest.TestCase):
 
   def __init__(self, *args, **kwargs):
-    unittest.TestCase.__init__(self, *args, **kwargs)
+    super(TestActionHandlers, self).__init__(*args, **kwargs)
 
     self.status = monitor.status.Status(STATUS_VALUES, None, None)
 

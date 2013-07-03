@@ -12,7 +12,7 @@ import monitor.status
 class TestRulesEngine(unittest.TestCase):
 
   def __init__(self, *args, **kwargs):
-    unittest.TestCase.__init__(self, *args, **kwargs)
+    super(TestRulesEngine, self).__init__(*args, **kwargs)
 
     status_values = {
       'server': {
