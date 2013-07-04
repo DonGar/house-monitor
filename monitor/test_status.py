@@ -24,35 +24,54 @@ class TestStatusBase(twisted.trial.unittest.TestCase):
 
     return monitor.status.Status(values, None, None)
 
-
-# class TestStatusDeferred(TestStatusBase):
-
-#   def test_url_match(self):
-#     status = self._create_status({
-#         'int': 2,
-#         'list': [],
-#         'dict': {'sub1': {'sub2': 1}},
-#       })
-
-#     d = monitor.status.StatusDeferred('status://dict/sub1')
-#     self.assertTrue(d.changed('status://dict'))
-#     self.assertTrue(d.match_url('status://dict/sub1/foo'))
-#     self.assertTrue(d.match_url('status://dict/sub1/sub2'))
-#     self.assertFalse(d.match_url('status://bar'))
-
-#   def test_url_match_none(self):
-#     status = self._create_status()
-#     d = monitor.status.StatusDeferred(None)
-#     self.assertTrue(d.match_url('status://bar'))
-
-
-class TestStatus(TestStatusBase):
-
   def _add_assert_timeout(self, d):
     # timeout is a unique object guaranteed different from any other result.
     timeout = object()
     d.addCallback(self.assertIs, timeout)
-    reactor.callLater(0.5, d.callback, timeout)
+    reactor.callLater(0.1, d.callback, timeout)
+
+
+class TestStatusDeferred(TestStatusBase):
+
+  def test_no_change_no_force(self):
+    status = self._create_status()
+
+    d_no_force = monitor.status.StatusDeferred(status,
+                                               url='status://dict/sub1',
+                                               force_update=False)
+    d_force = monitor.status.StatusDeferred(status,
+                                            url='status://dict/sub1',
+                                            force_update=True)
+
+    # Test when status has not been updated at all.
+    self.assertFalse(d_no_force.changed())
+    self.assertEqual(d_no_force.value(), 3)
+    self.assertTrue(d_force.changed())
+    self.assertEqual(d_force.value(), 3)
+
+    # Test when status has an unreleated change.
+    status.set('status://int', 2)
+    self.assertFalse(d_no_force.changed())
+    self.assertEqual(d_no_force.value(), 3)
+    self.assertTrue(d_force.changed())
+    self.assertEqual(d_force.value(), 3)
+
+    # Test when status has a releated noop change.
+    status.set('status://dict/sub1', 3)
+    self.assertFalse(d_no_force.changed())
+    self.assertEqual(d_no_force.value(), 3)
+    self.assertTrue(d_force.changed())
+    self.assertEqual(d_force.value(), 3)
+
+    # Test when status has a releated change.
+    status.set('status://dict/sub1', 4)
+    self.assertTrue(d_no_force.changed())
+    self.assertEqual(d_no_force.value(), 4)
+    self.assertTrue(d_force.changed())
+    self.assertEqual(d_force.value(), 4)
+
+
+class TestStatus(TestStatusBase):
 
   def test_creation(self):
     """Verify handle_action with status and http URL strings."""
