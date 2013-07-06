@@ -1,44 +1,135 @@
 #!/usr/bin/python
 
+import monitor.web_resources
+
 import unittest
 import mock
 
 import twisted.trial.unittest
 import twisted.internet
 from twisted.internet import defer
+from twisted.internet import reactor
 from twisted.web import server
 from twisted.web.test.test_web import DummyRequest
 
-import monitor.web_resources
+import monitor.util.test_base
 
 # pylint: disable=W0212
 
-class TestWebResources(twisted.trial.unittest.TestCase):
+class TestWebResourcesButton(monitor.util.test_base.TestBase):
 
-  def _create_status(self, values=None):
-    if values is None:
-      values = {
-        'int': 2,
-      }
+  def _test_button_helper(self, status, request, calls):
+    patch = mock.patch('monitor.actions.handle_action', autospec=True)
+    mocked = patch.start()
 
-    return monitor.status.Status(values, None, None)
+    # The resource to test.
+    resource = monitor.web_resources.Button(status)
 
-  def _render(self, resource, request):
-    result = resource.render(request)
-    if isinstance(result, str):
-      request.write(result)
-      request.finish()
-      return defer.succeed(None)
-    elif result is server.NOT_DONE_YET:
-      if request.finished:
-        return defer.succeed(None)
-      else:
-        return request.notifyFinish()
-    else:
-      raise ValueError("Unexpected return value: %r" % (result,))
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written), 'Success')
+      # Assert that no action handler was invoked.
+      mocked.assert_has_calls(calls)
+      patch.stop()
+    d.addCallback(rendered)
+    return d
+
+  def test_button_no_action(self):
+    status = self._create_status({ 'buttons': { 'foo': {}} })
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('id', 'foo')
+
+    # Expected calls
+    calls = []
+
+    return self._test_button_helper(status, request, calls)
+
+  def test_button_default_action(self):
+    status = self._create_status({ 'buttons': { 'foo': { 'actions':
+                                   { 'pushed': 'action_pushed'}
+                                 }}})
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('id', 'foo')
+
+    calls = [mock.call(status, 'status://buttons/foo/actions/pushed')]
+
+    return self._test_button_helper(status, request, calls)
+
+  def test_button_explicit_action(self):
+    status = self._create_status({ 'buttons': { 'foo': { 'actions':
+                                   { 'pushed': 'action_pushed',
+                                     'bar': 'action_bar'
+                                   }
+                                 }}})
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('id', 'foo')
+    request.addArg('action', 'bar')
+
+    calls = [mock.call(status, 'status://buttons/foo/actions/pushed'),
+             mock.call(status, 'status://buttons/foo/actions/bar')]
+
+    return self._test_button_helper(status, request, calls)
+
+
+class TestWebResourcesHost(monitor.util.test_base.TestBase):
+
+  def _test_host_helper(self, status, request, calls):
+    patch = mock.patch('monitor.actions.handle_action', autospec=True)
+    mocked = patch.start()
+
+    # The resource to test.
+    resource = monitor.web_resources.Host(status)
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written), 'Success')
+      # Assert that no action handler was invoked.
+      mocked.assert_has_calls(calls)
+      patch.stop()
+    d.addCallback(rendered)
+    return d
+
+  def test_button_no_action(self):
+    status = self._create_status(
+        { 'hosts': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('id', 'foo')
+
+    # Expected calls
+    calls = []
+
+    return self._test_host_helper(status, request, calls)
+
+  def test_button_explicit_action(self):
+    status = self._create_status(
+        { 'hosts': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('id', 'foo')
+    request.addArg('action', 'bar')
+
+    calls = [mock.call(status, 'status://hosts/foo/actions/bar')]
+
+    return self._test_host_helper(status, request, calls)
+
+
+class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
   def test_status(self):
-    status = self._create_status()
+    status = self._create_status({ 'int': 2 })
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -55,7 +146,62 @@ class TestWebResources(twisted.trial.unittest.TestCase):
     d.addCallback(rendered)
     return d
 
+  def test_status_wrong_version(self):
+    status = self._create_status({ 'int': 2 })
 
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('revision', '123')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written),
+                        '{\n    "int": 2, \n    "revision": 1\n}')
+    d.addCallback(rendered)
+    return d
+
+  def test_status_current_version(self):
+    status = self._create_status({ 'int': 2 })
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('revision', '1')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    self._add_assert_timeout(d)
+    return d
+
+  def test_status_current_version_with_update(self):
+    status = self._create_status({ 'int': 2 })
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest('')
+    request.addArg('revision', '1')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written),
+                        '{\n    "int": 3, \n    "revision": 2\n}')
+    d.addCallback(rendered)
+
+    status.set('status://int', 3)
+    return d
+
+class TestWebResourcesRestart(monitor.util.test_base.TestBase):
   def test_restart(self):
     status = self._create_status()
 
@@ -78,6 +224,7 @@ class TestWebResources(twisted.trial.unittest.TestCase):
     d.addCallback(rendered)
     return d
 
+class TestWebResourcesWake(monitor.util.test_base.TestBase):
   def test_wake(self):
     status = self._create_status()
 

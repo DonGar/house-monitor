@@ -43,37 +43,34 @@ class _ConfigActionHandler(_ConfigHandler):
   """Create a handler that parses arguments and hands off the action request."""
 
   def render_POST(self, request):
-    logging.info('Request: %s', request.uri)
-
     item_id = request.args['id'][0]
     action = request.args.get('action', [None])[0]
+    return self.render_action(request, item_id, action)
 
-    redirect = self.handle_action(request, item_id, action)
-
-    if redirect:
-      return redirectTo(redirect.encode('ascii'), request)
-
-    return 'Success'
-
-  def handle_action(self, _request, _item_id, _action):
-    raise Exception('handle_action not implemented.')
+  def render_action(self, _request, _item_id, _action):
+    raise Exception('render_action not implemented.')
 
 
 class Button(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, request, item_id, action):
+  def render_action(self, request, item_id, action):
 
     # Rmember when the button was pushed.
     # Convert to a generic action?
     status_pushed_uri = 'status://buttons/%s/pushed' % item_id
     self.status.set(status_pushed_uri, int(time.time()))
 
-    if action is None:
-      action = 'pushed'
+    # Run the default action, if present.
+    action_uri = 'status://buttons/%s/actions/pushed' % item_id
+    if self.status.get(action_uri, None):
+      monitor.actions.handle_action(self.status, action_uri)
 
-    action_uri = 'status://buttons/%s/actions/%s' % (item_id, action)
-    monitor.actions.handle_action(self.status, action_uri)
+    # Run the explicit action, if requested.
+    if action:
+      action_uri = 'status://buttons/%s/actions/%s' % (item_id, action)
+      monitor.actions.handle_action(self.status, action_uri)
+
     request.setResponseCode(200)
     return 'Success'
 
@@ -81,7 +78,7 @@ class Button(_ConfigActionHandler):
 class Host(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, request, item_id, action):
+  def render_action(self, request, item_id, action):
     if action:
       action_uri = 'status://hosts/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)
@@ -103,10 +100,10 @@ class Log(_ConfigHandler):
     return server.NOT_DONE_YET
 
   def send_update(self, status, request):
+    request.setResponseCode(200)
     request.setHeader('content-type', 'application/json')
     request.write(json.dumps(status.get_log(), sort_keys=True, indent=4))
     request.finish()
-    request.setResponseCode(200)
     return status
 
 

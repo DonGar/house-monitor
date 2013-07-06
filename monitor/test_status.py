@@ -9,31 +9,14 @@ from twisted.internet import reactor
 import twisted.trial.unittest
 
 import monitor.status
+import monitor.util.test_base
 
 # pylint: disable=W0212
 
-class TestStatusBase(twisted.trial.unittest.TestCase):
 
-  def _create_status(self, values=None):
-    if values is None:
-      values = {
-        'int': 2,
-        'list': [],
-        'dict': {'sub1': 3, 'sub2': 4},
-      }
+class TestStatusDeferred(monitor.util.test_base.TestBase):
 
-    return monitor.status.Status(values, None, None)
-
-  def _add_assert_timeout(self, d):
-    # timeout is a unique object guaranteed different from any other result.
-    timeout = object()
-    d.addCallback(self.assertIs, timeout)
-    reactor.callLater(0.1, d.callback, timeout)
-
-
-class TestStatusDeferred(TestStatusBase):
-
-  def test_no_change_no_force(self):
+  def test_status_deferred(self):
     status = self._create_status()
 
     d_no_force = monitor.status.StatusDeferred(status,
@@ -71,7 +54,7 @@ class TestStatusDeferred(TestStatusBase):
     self.assertEqual(d_force.value(), 4)
 
 
-class TestStatus(TestStatusBase):
+class TestStatus(monitor.util.test_base.TestBase):
 
   def test_creation(self):
     """Verify handle_action with status and http URL strings."""
