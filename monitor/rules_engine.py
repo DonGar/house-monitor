@@ -20,9 +20,9 @@ class RulesEngine:
 
     # This creates a dictionary of rules indexed by behavior string.
     #  { 'mirror': (<mirror rules>), 'interval': (<interval rules>), etc }
-    rules = status.get('status://rules', ())
+    rules = status.get('status://rule', {})
     behaviors = dict([(b, tuple(br)) for b, br in
-                      groupby(rules, lambda r: r['behavior'])])
+                      groupby(rules.itervalues(), lambda r: r['behavior'])])
 
     # Make sure we only have rules of known types.
     assert set(behaviors.keys()).issubset(set(self.BEHAVIORS))

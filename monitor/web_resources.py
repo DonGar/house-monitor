@@ -58,17 +58,17 @@ class Button(_ConfigActionHandler):
 
     # Rmember when the button was pushed.
     # Convert to a generic action?
-    status_pushed_uri = 'status://buttons/%s/pushed' % item_id
+    status_pushed_uri = 'status://button/%s/pushed' % item_id
     self.status.set(status_pushed_uri, int(time.time()))
 
     # Run the default action, if present.
-    action_uri = 'status://buttons/%s/actions/pushed' % item_id
+    action_uri = 'status://button/%s/actions/pushed' % item_id
     if self.status.get(action_uri, None):
       monitor.actions.handle_action(self.status, action_uri)
 
     # Run the explicit action, if requested.
     if action:
-      action_uri = 'status://buttons/%s/actions/%s' % (item_id, action)
+      action_uri = 'status://button/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)
 
     request.setResponseCode(200)
@@ -80,7 +80,7 @@ class Host(_ConfigActionHandler):
 
   def render_action(self, request, item_id, action):
     if action:
-      action_uri = 'status://hosts/%s/actions/%s' % (item_id, action)
+      action_uri = 'status://host/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)
     request.setResponseCode(200)
     return 'Success'

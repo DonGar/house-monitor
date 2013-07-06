@@ -28,7 +28,7 @@
   // When a button is invoked the field "pushed" will be updated with the
   // current time.
   //
-  "buttons": {
+  "button": {
     "<button_name>": {
       "actions": {
         "action_name": <action>
@@ -38,7 +38,7 @@
   },
 
   // Definitions of camera feeds to display on the website.
-  "cameras": {
+  "camera": {
     "<name>": {
       "<hostname>": "<fqdn>", // Defaults to 'name'
       "actions": {
@@ -59,7 +59,7 @@
   // they have will be redirected to response to:
   //   host?id=<id>&command=<wake|sleep>
   //
-  "hosts": {
+  "host": {
     "<name>": {
       "<hostname>": "<fqdn>",
       "address": "<snapshot_url>",
@@ -71,27 +71,27 @@
     ...
   },
 
-  "rules": [
-    {
+  "rule": {
+    "react": {
       // If the status changes, fire the action.
       "behavior": "watch",
       "value": "status://some/status",
       "trigger": <any_json_value>, // optional, only fire if changes to trigger.
       "action": <action>
     },
-    {
+    "once_a_day": {
       // Request a URL on a repeating interval.
       "behavior": "daily",
       "time": "sunset", // "sunset", "sunrise", "12:34:56"
       "action": <action>
     },
-    {
+    "all_day_long": {
       // Request a URL on a repeating interval.
       "behavior": "interval",
       "time": "00:05:00", // Repeat every X time periods from previous midnight.
       "action": <action>
     }
-  ]
+  }
 }
 
 

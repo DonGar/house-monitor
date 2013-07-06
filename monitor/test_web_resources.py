@@ -37,7 +37,7 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     return d
 
   def test_button_no_action(self):
-    status = self._create_status({ 'buttons': { 'foo': {}} })
+    status = self._create_status({ 'button': { 'foo': {}} })
 
     # The request to make.
     request = DummyRequest('')
@@ -49,7 +49,7 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     return self._test_button_helper(status, request, calls)
 
   def test_button_default_action(self):
-    status = self._create_status({ 'buttons': { 'foo': { 'actions':
+    status = self._create_status({ 'button': { 'foo': { 'actions':
                                    { 'pushed': 'action_pushed'}
                                  }}})
 
@@ -57,12 +57,12 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     request = DummyRequest('')
     request.addArg('id', 'foo')
 
-    calls = [mock.call(status, 'status://buttons/foo/actions/pushed')]
+    calls = [mock.call(status, 'status://button/foo/actions/pushed')]
 
     return self._test_button_helper(status, request, calls)
 
   def test_button_explicit_action(self):
-    status = self._create_status({ 'buttons': { 'foo': { 'actions':
+    status = self._create_status({ 'button': { 'foo': { 'actions':
                                    { 'pushed': 'action_pushed',
                                      'bar': 'action_bar'
                                    }
@@ -73,8 +73,8 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     request.addArg('id', 'foo')
     request.addArg('action', 'bar')
 
-    calls = [mock.call(status, 'status://buttons/foo/actions/pushed'),
-             mock.call(status, 'status://buttons/foo/actions/bar')]
+    calls = [mock.call(status, 'status://button/foo/actions/pushed'),
+             mock.call(status, 'status://button/foo/actions/bar')]
 
     return self._test_button_helper(status, request, calls)
 
@@ -101,7 +101,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_button_no_action(self):
     status = self._create_status(
-        { 'hosts': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+        { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
     # The request to make.
     request = DummyRequest('')
@@ -114,14 +114,14 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_button_explicit_action(self):
     status = self._create_status(
-        { 'hosts': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+        { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
     # The request to make.
     request = DummyRequest('')
     request.addArg('id', 'foo')
     request.addArg('action', 'bar')
 
-    calls = [mock.call(status, 'status://hosts/foo/actions/bar')]
+    calls = [mock.call(status, 'status://host/foo/actions/bar')]
 
     return self._test_host_helper(status, request, calls)
 
