@@ -8,7 +8,6 @@ import smtplib
 import email
 import os
 
-
 from twisted.web.client import getPage
 from twisted.internet import base
 from twisted.internet import defer
@@ -19,7 +18,6 @@ from twisted.python.urlpath import URLPath
 from twisted.web import server
 from twisted.web.resource import Resource
 from twisted.web.util import redirectTo
-
 
 import monitor.actions
 
@@ -64,7 +62,7 @@ class _ConfigActionHandler(_ConfigHandler):
 class Button(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, _request, item_id, action):
+  def handle_action(self, request, item_id, action):
 
     # Rmember when the button was pushed.
     # Convert to a generic action?
@@ -76,15 +74,19 @@ class Button(_ConfigActionHandler):
 
     action_uri = 'status://buttons/%s/actions/%s' % (item_id, action)
     monitor.actions.handle_action(self.status, action_uri)
+    request.setResponseCode(200)
+    return 'Success'
 
 
 class Host(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def handle_action(self, _request, item_id, action):
+  def handle_action(self, request, item_id, action):
     if action:
       action_uri = 'status://hosts/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)
+    request.setResponseCode(200)
+    return 'Success'
 
 
 class Log(_ConfigHandler):
@@ -104,13 +106,15 @@ class Log(_ConfigHandler):
     request.setHeader('content-type', 'application/json')
     request.write(json.dumps(status.get_log(), sort_keys=True, indent=4))
     request.finish()
+    request.setResponseCode(200)
     return status
 
 
 class Restart(_ConfigHandler):
 
-  def render_POST(self, _request):
+  def render_POST(self, request):
     reactor.stop()
+    request.setResponseCode(200)
     return 'Success'
 
 
@@ -124,14 +128,14 @@ class Status(_ConfigHandler):
 
     notification = self.status.createNotification(revision)
     notification.addCallback(self.send_update, request)
-    request.notifyFinish().addErrback(notification.errback)
     return server.NOT_DONE_YET
 
-  def send_update(self, status, request):
+  def send_update(self, value, request):
+    request.setResponseCode(200)
     request.setHeader('content-type', 'application/json')
-    request.write(json.dumps(status.get(), sort_keys=True, indent=4))
+    request.write(json.dumps(value, sort_keys=True, indent=4))
     request.finish()
-    return status
+    return value
 
 
 class Wake(_ConfigHandler):
@@ -140,4 +144,6 @@ class Wake(_ConfigHandler):
     for mac in request.args['target']:
       logging.info('received request for: %s', mac)
       wake_on_lan.wake_on_lan(mac)
+
+    request.setResponseCode(200)
     return 'Success'
