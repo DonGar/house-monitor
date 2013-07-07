@@ -22,25 +22,23 @@
   //
   // This defines handlers for buttons with ids.
   //
-  // http://server/button?id=foo  <uses default action 'pushed' if present>
-  // http://server/button?id=foo?action=action_name
+  // http://server/button/foo
   //
   // When a button is invoked the field "pushed" will be updated with the
   // current time.
   //
   "button": {
     "<button_name>": {
-      "actions": {
-        "action_name": <action>
-        ...
-      }
-    },
+      "action": <action>
+      "pushed": 0
+    }
   },
 
   // Definitions of camera feeds to display on the website.
   "camera": {
     "<name>": {
       "<hostname>": "<fqdn>", // Defaults to 'name'
+      "address": "<snapshot_url>",
       "actions": {
         "action_name": <action>
         ...
@@ -62,7 +60,6 @@
   "host": {
     "<name>": {
       "<hostname>": "<fqdn>",
-      "address": "<snapshot_url>",
       "actions": {
         "action_name": <action>
         ...

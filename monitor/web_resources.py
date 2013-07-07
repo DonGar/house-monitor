@@ -43,18 +43,21 @@ class _ConfigActionHandler(_ConfigHandler):
   """Create a handler that parses arguments and hands off the action request."""
 
   def render_POST(self, request):
-    item_id = request.args['id'][0]
-    action = request.args.get('action', [None])[0]
-    return self.render_action(request, item_id, action)
 
-  def render_action(self, _request, _item_id, _action):
+    # Expecting 'button', not 'button/stuff'
+
+    item_id = request.postpath
+    assert item_id.find('/') == -1
+    return self.render_action(request, item_id)
+
+  def render_action(self, _request, _item_id):
     raise Exception('render_action not implemented.')
 
 
 class Button(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def render_action(self, request, item_id, action):
+  def render_action(self, request, item_id):
 
     # Rmember when the button was pushed.
     # Convert to a generic action?
@@ -62,13 +65,8 @@ class Button(_ConfigActionHandler):
     self.status.set(status_pushed_uri, int(time.time()))
 
     # Run the default action, if present.
-    action_uri = 'status://button/%s/actions/pushed' % item_id
+    action_uri = 'status://button/%s/action' % item_id
     if self.status.get(action_uri, None):
-      monitor.actions.handle_action(self.status, action_uri)
-
-    # Run the explicit action, if requested.
-    if action:
-      action_uri = 'status://button/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)
 
     request.setResponseCode(200)
@@ -78,7 +76,8 @@ class Button(_ConfigActionHandler):
 class Host(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def render_action(self, request, item_id, action):
+  def render_action(self, request, item_id):
+    action = request.args.get('action', [None])[0]
     if action:
       action_uri = 'status://host/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)

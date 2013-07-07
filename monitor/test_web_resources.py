@@ -18,7 +18,7 @@ import monitor.util.test_base
 
 class TestWebResourcesButton(monitor.util.test_base.TestBase):
 
-  def _test_button_helper(self, status, request, calls):
+  def _test_button_helper(self, status, request, expected_actions, time_uri):
     patch = mock.patch('monitor.actions.handle_action', autospec=True)
     mocked = patch.start()
 
@@ -30,58 +30,58 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
+
+      # Test pushed time was set. Any current time is > 100.
+      self.assertTrue(status.get(time_uri) > 100)
+
       # Assert that no action handler was invoked.
-      mocked.assert_has_calls(calls)
+      mocked.assert_has_calls(expected_actions)
       patch.stop()
     d.addCallback(rendered)
     return d
 
+  def test_unknown_button(self):
+    status = self._create_status({ 'button': { 'foo': {}} })
+
+    # Setup
+    request_unknown = DummyRequest('unknown')
+    request_malformed = DummyRequest('foo/bar')
+    resource = monitor.web_resources.Button(status)
+
+    # Ensure these fail.
+    self.assertRaises(KeyError, self._render, resource, request_unknown)
+    self.assertRaises(AssertionError, self._render, resource, request_malformed)
+
   def test_button_no_action(self):
     status = self._create_status({ 'button': { 'foo': {}} })
 
-    # The request to make.
-    request = DummyRequest('')
-    request.addArg('id', 'foo')
+    request = DummyRequest('foo')
+    expected_actions = []
+    return self._test_button_helper(status, request, expected_actions,
+                                    'status://button/foo/pushed')
 
-    # Expected calls
-    calls = []
+  def test_button_no_action(self):
+    status = self._create_status({ 'button': { 'foo': {}} })
 
-    return self._test_button_helper(status, request, calls)
+    request = DummyRequest('foo')
+    expected_actions = []
+    return self._test_button_helper(status, request, expected_actions,
+                                    'status://button/foo/pushed')
 
-  def test_button_default_action(self):
-    status = self._create_status({ 'button': { 'foo': { 'actions':
-                                   { 'pushed': 'action_pushed'}
-                                 }}})
+  def test_button_action(self):
+    status = self._create_status({ 'button': { 'foo':
+                                               { 'action': 'action_pushed',
+                                                 'pushed': 4 }}})
 
-    # The request to make.
-    request = DummyRequest('')
-    request.addArg('id', 'foo')
-
-    calls = [mock.call(status, 'status://button/foo/actions/pushed')]
-
-    return self._test_button_helper(status, request, calls)
-
-  def test_button_explicit_action(self):
-    status = self._create_status({ 'button': { 'foo': { 'actions':
-                                   { 'pushed': 'action_pushed',
-                                     'bar': 'action_bar'
-                                   }
-                                 }}})
-
-    # The request to make.
-    request = DummyRequest('')
-    request.addArg('id', 'foo')
-    request.addArg('action', 'bar')
-
-    calls = [mock.call(status, 'status://button/foo/actions/pushed'),
-             mock.call(status, 'status://button/foo/actions/bar')]
-
-    return self._test_button_helper(status, request, calls)
+    request = DummyRequest('foo')
+    expected_actions = [mock.call(status, 'status://button/foo/action')]
+    return self._test_button_helper(status, request, expected_actions,
+                                    'status://button/foo/pushed')
 
 
 class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
-  def _test_host_helper(self, status, request, calls):
+  def _test_host_helper(self, status, request, expected_actions):
     patch = mock.patch('monitor.actions.handle_action', autospec=True)
     mocked = patch.start()
 
@@ -94,36 +94,42 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
       # Assert that no action handler was invoked.
-      mocked.assert_has_calls(calls)
+      mocked.assert_has_calls(expected_actions)
       patch.stop()
     d.addCallback(rendered)
     return d
 
-  def test_button_no_action(self):
+  def test_unknown_host(self):
     status = self._create_status(
         { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
-    # The request to make.
-    request = DummyRequest('')
-    request.addArg('id', 'foo')
+    # Setup
+    request_unknown = DummyRequest('unknown')
+    request_malformed = DummyRequest('foo/bar')
+    resource = monitor.web_resources.Button(status)
 
-    # Expected calls
-    calls = []
+    # Ensure these fail.
+    self.assertRaises(KeyError, self._render, resource, request_unknown)
+    self.assertRaises(AssertionError, self._render, resource, request_malformed)
 
-    return self._test_host_helper(status, request, calls)
-
-  def test_button_explicit_action(self):
+  def test_host_no_action(self):
     status = self._create_status(
         { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
-    # The request to make.
-    request = DummyRequest('')
-    request.addArg('id', 'foo')
+    request = DummyRequest('foo')
+    expected_actions = []
+
+    return self._test_host_helper(status, request, expected_actions)
+
+  def test_host_explicit_action(self):
+    status = self._create_status(
+        { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+
+    request = DummyRequest('foo')
     request.addArg('action', 'bar')
+    expected_actions = [mock.call(status, 'status://host/foo/actions/bar')]
 
-    calls = [mock.call(status, 'status://host/foo/actions/bar')]
-
-    return self._test_host_helper(status, request, calls)
+    return self._test_host_helper(status, request, expected_actions)
 
 
 class TestWebResourcesStatus(monitor.util.test_base.TestBase):
@@ -201,6 +207,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     status.set('status://int', 3)
     return d
 
+
 class TestWebResourcesRestart(monitor.util.test_base.TestBase):
   def test_restart(self):
     status = self._create_status()
@@ -223,6 +230,7 @@ class TestWebResourcesRestart(monitor.util.test_base.TestBase):
       patch.stop()
     d.addCallback(rendered)
     return d
+
 
 class TestWebResourcesWake(monitor.util.test_base.TestBase):
   def test_wake(self):
