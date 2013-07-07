@@ -44,8 +44,8 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     status = self._create_status({ 'button': { 'foo': {}} })
 
     # Setup
-    request_unknown = DummyRequest('unknown')
-    request_malformed = DummyRequest('foo/bar')
+    request_unknown = DummyRequest(['unknown'])
+    request_malformed = DummyRequest(['foo', 'bar'])
     resource = monitor.web_resources.Button(status)
 
     # Ensure these fail.
@@ -55,15 +55,7 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
   def test_button_no_action(self):
     status = self._create_status({ 'button': { 'foo': {}} })
 
-    request = DummyRequest('foo')
-    expected_actions = []
-    return self._test_button_helper(status, request, expected_actions,
-                                    'status://button/foo/pushed')
-
-  def test_button_no_action(self):
-    status = self._create_status({ 'button': { 'foo': {}} })
-
-    request = DummyRequest('foo')
+    request = DummyRequest(['foo'])
     expected_actions = []
     return self._test_button_helper(status, request, expected_actions,
                                     'status://button/foo/pushed')
@@ -73,7 +65,7 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
                                                { 'action': 'action_pushed',
                                                  'pushed': 4 }}})
 
-    request = DummyRequest('foo')
+    request = DummyRequest(['foo'])
     expected_actions = [mock.call(status, 'status://button/foo/action')]
     return self._test_button_helper(status, request, expected_actions,
                                     'status://button/foo/pushed')
@@ -104,8 +96,8 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
         { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
     # Setup
-    request_unknown = DummyRequest('unknown')
-    request_malformed = DummyRequest('foo/bar')
+    request_unknown = DummyRequest(['unknown'])
+    request_malformed = DummyRequest(['foo', 'bar'])
     resource = monitor.web_resources.Button(status)
 
     # Ensure these fail.
@@ -116,7 +108,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
     status = self._create_status(
         { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
-    request = DummyRequest('foo')
+    request = DummyRequest(['foo'])
     expected_actions = []
 
     return self._test_host_helper(status, request, expected_actions)
@@ -125,7 +117,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
     status = self._create_status(
         { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
 
-    request = DummyRequest('foo')
+    request = DummyRequest(['foo'])
     request.addArg('action', 'bar')
     expected_actions = [mock.call(status, 'status://host/foo/actions/bar')]
 
@@ -141,7 +133,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest('')
+    request = DummyRequest([])
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -159,7 +151,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest('')
+    request = DummyRequest([])
     request.addArg('revision', '123')
 
     # Create and validate the response.
@@ -178,7 +170,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest('')
+    request = DummyRequest([])
     request.addArg('revision', '1')
 
     # Create and validate the response.
@@ -193,7 +185,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest('')
+    request = DummyRequest([])
     request.addArg('revision', '1')
 
     # Create and validate the response.
@@ -216,7 +208,7 @@ class TestWebResourcesRestart(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Restart(status)
 
     # The request to make.
-    request = DummyRequest('')
+    request = DummyRequest([])
 
     patch = mock.patch('twisted.internet.reactor.stop', autospec=True)
     mocked = patch.start()
@@ -240,7 +232,7 @@ class TestWebResourcesWake(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Wake(status)
 
     # The request to make.
-    request = DummyRequest('')
+    request = DummyRequest([])
     request.addArg('target', '11:22:33:44:55:66')
 
     patch = mock.patch('monitor.util.wake_on_lan.wake_on_lan',

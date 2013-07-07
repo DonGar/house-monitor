@@ -45,9 +45,9 @@ class _ConfigActionHandler(_ConfigHandler):
   def render_POST(self, request):
 
     # Expecting 'button', not 'button/stuff'
+    assert len(request.postpath) == 1
 
-    item_id = request.postpath
-    assert item_id.find('/') == -1
+    item_id = request.postpath[0]
     return self.render_action(request, item_id)
 
   def render_action(self, _request, _item_id):
