@@ -19,7 +19,7 @@
     revision_logs = 0;
 
     function update_status() {
-      $.get('status_handler?revision='+revision_status,
+      $.get('status?revision='+revision_status,
             function(unparsed_data) {
         data = $.parseJSON(unparsed_data);
         revision_status = data['revision'];

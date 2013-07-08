@@ -85,7 +85,7 @@ def setup():
   root.putChild("host", monitor.web_resources.Host(status))
   root.putChild("log_handler", monitor.web_resources.Log(status))
   root.putChild("restart", monitor.web_resources.Restart(status))
-  root.putChild("status_handler", monitor.web_resources.Status(status))
+  root.putChild("status", monitor.web_resources.Status(status))
   root.putChild("wake_handler", monitor.web_resources.Wake(status))
 
   reactor.listenTCP(config['server'].get('port', 8080),

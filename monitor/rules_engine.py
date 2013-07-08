@@ -44,7 +44,7 @@ class RulesEngine:
 
   # Handle Mirror Rules
   def _setup_watch_processing(self, _=None):
-    notification = self.status.createNotification(self.status.revision())
+    notification = self.status.deferred(self.status.revision())
     notification.addCallback(self._setup_watch_processing)
     self._process_watch_rules()
 

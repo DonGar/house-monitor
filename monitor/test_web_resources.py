@@ -140,7 +140,13 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written),
-                        '{\n    "int": 2, \n    "revision": 1\n}')
+                        '{\n'
+                        '    "revision": 1, \n'
+                        '    "status": {\n'
+                        '        "int": 2\n'
+                        '    }, \n'
+                        '    "url": "status://"\n'
+                        '}')
     d.addCallback(rendered)
     return d
 
@@ -159,7 +165,13 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written),
-                        '{\n    "int": 2, \n    "revision": 1\n}')
+                        '{\n'
+                        '    "revision": 1, \n'
+                        '    "status": {\n'
+                        '        "int": 2\n'
+                        '    }, \n'
+                        '    "url": "status://"\n'
+                        '}')
     d.addCallback(rendered)
     return d
 
@@ -193,12 +205,62 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written),
-                        '{\n    "int": 3, \n    "revision": 2\n}')
+                        '{\n'
+                        '    "revision": 2, \n'
+                        '    "status": {\n'
+                        '        "int": 3\n'
+                        '    }, \n'
+                        '    "url": "status://"\n'
+                        '}')
     d.addCallback(rendered)
 
     status.set('status://int', 3)
     return d
 
+  def test_status_path(self):
+    status = self._create_status({ 'int': 2,
+                                   'sub1': { 'sub2': {}}})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['sub1', 'sub2'])
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written),
+                        '{\n'
+                        '    "revision": 1, \n'
+                        '    "status": {}, \n'
+                        '    "url": "status://sub1/sub2"\n'
+                        '}')
+    d.addCallback(rendered)
+    return d
+
+  def test_status_path_revision_path_not_modified(self):
+    status = self._create_status({ 'int': 2,
+                                   'sub1': { 'sub2': {}}})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['sub1', 'sub2'])
+    request.addArg('revision', '1')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+
+    # Modify AFTER our request is in place.
+    status.set('status://int', 3)
+
+    # Since the branch we are watching wasn't modified, we shouldn't be
+    # notified.
+    self._add_assert_timeout(d)
+    return d
 
 class TestWebResourcesRestart(monitor.util.test_base.TestBase):
   def test_restart(self):

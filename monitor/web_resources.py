@@ -93,7 +93,7 @@ class Log(_ConfigHandler):
     # args['revision'] -> ['123'] if present at all
     revision = int(request.args.get('revision', [0])[0])
 
-    notification = self.status.createNotification(revision)
+    notification = self.status.deferred(revision)
     notification.addCallback(self.send_update, request)
     request.notifyFinish().addErrback(notification.errback)
     return server.NOT_DONE_YET
@@ -121,8 +121,9 @@ class Status(_ConfigHandler):
 
     # args['revision'] -> ['123'] if present at all
     revision = int(request.args.get('revision', [0])[0])
+    status_url = 'status://' + '/'.join(request.postpath)
 
-    notification = self.status.createNotification(revision)
+    notification = self.status.deferred(revision, status_url)
     notification.addCallback(self.send_update, request)
     return server.NOT_DONE_YET
 
