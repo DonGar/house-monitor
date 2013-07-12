@@ -30,7 +30,7 @@
     };
 
     function update_logs() {
-      $.get('log_handler?revision='+revision_logs, function(unparsed_data) {
+      $.get('log?revision='+revision_logs, function(unparsed_data) {
         data = $.parseJSON(unparsed_data);
         revision_logs = data['revision'];
         $("#logs").html(unparsed_data);

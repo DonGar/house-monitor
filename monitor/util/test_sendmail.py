@@ -4,9 +4,10 @@ import mock
 import unittest
 
 import monitor.util.sendemail
+import monitor.util.test_base
 
 
-class TestEmailUtil(unittest.TestCase):
+class TestEmailUtil(monitor.util.test_base.TestBase):
 
   def __init__(self, *args, **kwargs):
     super(TestEmailUtil, self).__init__(*args, **kwargs)
@@ -17,7 +18,7 @@ class TestEmailUtil(unittest.TestCase):
       },
     }
 
-    self.status = monitor.status.Status(status_values, None, None)
+    self.status = self._create_status(status_values)
 
   def test_email(self):
     """Test Sending Email."""

@@ -11,6 +11,7 @@ import monitor.actions
 import monitor.status
 
 import monitor.util.action
+import monitor.util.test_base
 import monitor.util.wake_on_lan
 
 STATUS_VALUES = {
@@ -26,12 +27,12 @@ STATUS_VALUES = {
 }
 
 
-class TestActionHandlers(unittest.TestCase):
+class TestActionHandlers(monitor.util.test_base.TestBase):
 
   def __init__(self, *args, **kwargs):
     super(TestActionHandlers, self).__init__(*args, **kwargs)
 
-    self.status = monitor.status.Status(STATUS_VALUES, None, None)
+    self.status = self._create_status(STATUS_VALUES)
 
   def test_handle_action_url(self):
     """Verify handle_action with status and http URL strings."""

@@ -5,28 +5,24 @@ import unittest
 
 import monitor.rules_engine
 import monitor.status
+import monitor.util.test_base
 
 
 # pylint: disable=W0212
 
-class TestRulesEngine(unittest.TestCase):
-
-  def __init__(self, *args, **kwargs):
-    super(TestRulesEngine, self).__init__(*args, **kwargs)
-
-    status_values = {
-      'server': {
-        'latitude': '37.3861',
-        'longitude': '-122.0839',
-        'email_address': 'default@address.com',
-      },
-    }
-
-    self.status = monitor.status.Status(status_values, None, None)
+class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_no_rules(self):
     """Verify handle_action with status and http URL strings."""
-    engine = monitor.rules_engine.RulesEngine(self.status)
+    status = self._create_status({
+          'server': {
+            'latitude': '37.3861',
+            'longitude': '-122.0839',
+            'email_address': 'default@address.com',
+          },
+        })
+
+    engine = monitor.rules_engine.RulesEngine(status)
 
     self.assertEquals(len(engine._watch_rules), 0)
     self.assertEquals(len(engine._daily_rules), 0)

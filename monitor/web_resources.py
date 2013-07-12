@@ -85,7 +85,24 @@ class Host(_ConfigActionHandler):
     return 'Success'
 
 
-class Log(_ConfigHandler):
+class Log(Resource):
+
+  def __init__(self, log_handler, log_buffer):
+    Resource.__init__(self)
+    self._log_handler = log_handler
+    self._log_buffer = log_buffer
+
+  def get_log(self):
+    self._log_handler.flush()
+    log = self._log_buffer.getvalue().split('\n')
+
+    return {
+      'revision': len(log),
+      'log': log,
+    }
+
+  def render_GET(self, request):
+    return self.render_POST(request)
 
   def render_POST(self, request):
     logging.info('Request: %s', request.uri)
@@ -93,17 +110,26 @@ class Log(_ConfigHandler):
     # args['revision'] -> ['123'] if present at all
     revision = int(request.args.get('revision', [0])[0])
 
-    notification = self.status.deferred(revision)
-    notification.addCallback(self.send_update, request)
-    request.notifyFinish().addErrback(notification.errback)
+    if revision == 0:
+      delay = 0
+    else:
+      delay = 10
+
+    # Pretend we have a real deferred to tell us logs were updated.
+    notify = reactor.callLater(delay, self._send_update, request)
+
+    # If we get cut off while waiting to respond, it's pretty normal. Don't
+    # error out.
+    finish_deferred = request.notifyFinish()
+    finish_deferred.addErrback(lambda _err: notify.cancel())
+
     return server.NOT_DONE_YET
 
-  def send_update(self, status, request):
+  def _send_update(self, request):
     request.setResponseCode(200)
     request.setHeader('content-type', 'application/json')
-    request.write(json.dumps(status.get_log(), sort_keys=True, indent=4))
+    request.write(json.dumps(self.get_log(), sort_keys=True, indent=4))
     request.finish()
-    return status
 
 
 class Restart(_ConfigHandler):
@@ -125,6 +151,12 @@ class Status(_ConfigHandler):
 
     notification = self.status.deferred(revision, status_url)
     notification.addCallback(self.send_update, request)
+
+    # If we get cut off while waiting to respond, it's pretty normal. Don't
+    # error out.
+    finish_deferred = request.notifyFinish()
+    finish_deferred.addErrback(lambda _err: notification.cancel())
+
     return server.NOT_DONE_YET
 
   def send_update(self, value, request):

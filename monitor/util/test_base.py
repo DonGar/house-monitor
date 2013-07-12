@@ -20,7 +20,7 @@ class TestBase(twisted.trial.unittest.TestCase):
         'dict': {'sub1': 3, 'sub2': 4},
       }
 
-    return monitor.status.Status(values, None, None)
+    return monitor.status.Status(values)
 
   def _add_assert_timeout(self, d):
     # timeout is a unique object guaranteed different from any other result.

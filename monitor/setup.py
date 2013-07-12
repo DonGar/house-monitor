@@ -71,7 +71,7 @@ def setup():
 
   # Create our global shared status
   config = parse_config_file()
-  status = Status(config, log_handler, log_buffer)
+  status = Status(config)
 
   # pylint: disable=W0612
   engine = RulesEngine(status)
@@ -83,7 +83,7 @@ def setup():
   root = File("./static")
   root.putChild("button", monitor.web_resources.Button(status))
   root.putChild("host", monitor.web_resources.Host(status))
-  root.putChild("log_handler", monitor.web_resources.Log(status))
+  root.putChild("log", monitor.web_resources.Log(log_handler, log_buffer))
   root.putChild("restart", monitor.web_resources.Restart(status))
   root.putChild("status", monitor.web_resources.Status(status))
   root.putChild("wake_handler", monitor.web_resources.Wake(status))

@@ -30,15 +30,12 @@ class Status:
                'status': self._status.get(self._url),
              }
 
-  def __init__(self, config, log_handler, log_stream):
+  def __init__(self, config):
     self._revision = 1
     self._values = copy.deepcopy(config)
 
     self._notifications = []
     self._pending_notify = None
-
-    self._log_handler = log_handler
-    self._log_stream = log_stream
 
   def _parse_url(self, url):
     """status://foo/bar -> [foo, bar]"""
@@ -120,11 +117,3 @@ class Status:
       # Notify listeners.
       logging.info('New revision %d', self.revision())
       self._notify()
-
-  def get_log(self):
-    self._log_handler.flush()
-    result = {
-      'revision': self.revision(),
-      'log': self._log_stream.getvalue().split('\n'),
-    }
-    return result
