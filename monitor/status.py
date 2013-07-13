@@ -6,82 +6,22 @@ import logging
 from twisted.internet import defer
 from twisted.internet import reactor
 
+PREFIX = 'status://'
+
+#
+# See 'status' variable at the end.
+#
+
 class Status:
-  PREFIX = 'status://'
 
-  class _StatusDeferred(defer.Deferred):
+  def __init__(self, value=None):
+    if value is None:
+      value = {}
 
-    def __init__(self, status, url, force_update=False):
-      defer.Deferred.__init__(self)
-      self._status = status
-      self._url = url
-      self._force_update = force_update
-
-      self._value = status.get(url)
-
-    def changed(self):
-      return self._force_update or self._status.get(self._url) != self._value
-
-    def value(self):
-      return {
-               'revision': self._status.revision(),
-               'url': self._url,
-               'status': self._status.get(self._url),
-             }
-
-  def __init__(self, config):
     self._revision = 1
-    self._values = copy.deepcopy(config)
-
+    self._values = copy.deepcopy(value)
     self._notifications = []
     self._pending_notify = None
-
-  def _parse_url(self, url):
-    """status://foo/bar -> [foo, bar]"""
-    self._validate_url(url)
-    result = url[len(Status.PREFIX):].split('/')
-
-    # Fixup the slightly broken results of split.
-    if result == ['']:
-      result = []
-
-    return result
-
-  def _validate_url(self, url):
-    assert(url.startswith(Status.PREFIX))
-
-  def _notify_handler(self):
-    self._pending_notify = None
-    for deferred in self._notifications[:]:
-      if deferred.changed():
-        self._notifications.remove(deferred)
-        deferred.callback(deferred.value())
-
-  def _notify(self):
-    if self._notifications:
-      # This small delay notifying clients allows multiple updates to
-      # go through in a single notification.
-      if not self._pending_notify:
-        self._pending_notify = reactor.callLater(0.05, self._notify_handler)
-      else:
-        self._pending_notify.reset(0.05)
-
-  def deferred(self, revision, url='status://'):
-    """Create a deferred that's called when status is next updated.
-
-       If an outdated revision is provided, we will call back right away.
-       Otherwise, revision is ignored.
-    """
-    self._validate_url(url)
-    force_update = revision != self.revision()
-
-    d = self._StatusDeferred(self, url, force_update)
-    self._notifications.append(d)
-
-    if force_update:
-      self._notify()
-
-    return d
 
   def revision(self):
     return self._revision
@@ -116,3 +56,76 @@ class Status:
       # Notify listeners.
       logging.info('New revision %d', self.revision())
       self._notify()
+
+  def deferred(self, revision, url='status://'):
+    """Create a deferred that's called when status is next updated.
+
+       If an outdated revision is provided, we will call back right away.
+       Otherwise, revision is ignored.
+    """
+    self._validate_url(url)
+    force_update = revision != self.revision()
+
+    d = self._StatusDeferred(self, url, force_update)
+    self._notifications.append(d)
+
+    if force_update:
+      self._notify()
+
+    return d
+
+  def _parse_url(self, url):
+    """status://foo/bar -> [foo, bar]"""
+    self._validate_url(url)
+    result = url[len(PREFIX):].split('/')
+
+    # Fixup the slightly broken results of split.
+    if result == ['']:
+      result = []
+
+    return result
+
+  def _validate_url(self, url):
+    assert(url.startswith(PREFIX))
+
+  def _notify_handler(self):
+    self._pending_notify = None
+    for deferred in self._notifications[:]:
+      if deferred.changed():
+        self._notifications.remove(deferred)
+        deferred.callback(deferred.value())
+
+  def _notify(self):
+    if self._notifications:
+      # This small delay notifying clients allows multiple updates to
+      # go through in a single notification.
+      if not self._pending_notify:
+        self._pending_notify = reactor.callLater(0.05, self._notify_handler)
+      else:
+        self._pending_notify.reset(0.05)
+
+  class _StatusDeferred(defer.Deferred):
+    """Helper class for watching part of the status to see if it was updated.
+
+    This is a deferred with helpers (for use by Status only) to help figure
+    out if it's time for it to call back or not, and what value to send to
+    the callback.
+    """
+
+    def __init__(self, status, url, force_update=False):
+      defer.Deferred.__init__(self)
+      self._status = status
+      self._url = url
+      self._force_update = force_update
+
+      self._value = status.get(url)
+
+    def changed(self):
+      return self._force_update or self._status.get(self._url) != self._value
+
+    def value(self):
+      return {
+               'revision': self._status.revision(),
+               'url': self._url,
+               'status': self._status.get(self._url),
+             }

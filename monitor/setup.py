@@ -62,7 +62,7 @@ def setup():
   log_handler, log_buffer = setupLogging()
 
   # Create our global shared status
-  status = Status({})
+  status = Status()
   status.set('status://server', parse_config_file('server.json'))
   status.set('status://config', parse_config_file('config.json'))
 
