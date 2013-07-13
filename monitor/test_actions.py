@@ -1,11 +1,9 @@
 #!/usr/bin/python
 
 import mock
-import tempfile
 import unittest
 
 from twisted.internet import defer
-from twisted.internet import reactor
 
 import monitor.actions
 import monitor.status

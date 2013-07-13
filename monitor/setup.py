@@ -1,25 +1,17 @@
 #!/usr/bin/python
 
-import copy
-import datetime
 import json
 import logging
 import os
 import sys
 import StringIO
-import time
-import urllib
 
 from twisted.python import log
-from twisted.web.client import downloadPage
-from twisted.web.client import getPage
 from twisted.internet import reactor
 from twisted.web.static import File
 from twisted.web.server import Site
 
 from monitor.rules_engine import RulesEngine
-from monitor.util import action
-from monitor.util import repeat
 from monitor.status import Status
 import monitor.up
 import monitor.web_resources

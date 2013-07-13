@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import unittest
-import mock
 
 import twisted.trial.unittest
 from twisted.internet import defer

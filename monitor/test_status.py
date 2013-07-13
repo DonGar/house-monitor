@@ -1,12 +1,6 @@
 #!/usr/bin/python
 
 import unittest
-import mock
-
-from twisted.internet import task
-from twisted.internet import reactor
-
-import twisted.trial.unittest
 
 import monitor.status
 import monitor.util.test_base

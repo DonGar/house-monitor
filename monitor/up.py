@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import copy
 import logging
 
 from twisted.internet import task

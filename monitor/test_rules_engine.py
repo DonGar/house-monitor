@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import mock
 import unittest
 
 import monitor.rules_engine

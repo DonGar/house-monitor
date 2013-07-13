@@ -1,13 +1,11 @@
 #!/usr/bin/python
 
-import logging
-import smtplib
-import mimetypes
-
-
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+import logging
+import smtplib
 
 def email(status, to, subject, body, attachments):
   logging.debug('Action: Email %s about %s: %s: %s',

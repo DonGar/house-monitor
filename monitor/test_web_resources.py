@@ -5,11 +5,6 @@ import monitor.web_resources
 import unittest
 import mock
 
-import twisted.trial.unittest
-import twisted.internet
-from twisted.internet import defer
-from twisted.internet import reactor
-from twisted.web import server
 from twisted.web.test.test_web import DummyRequest
 
 import monitor.util.test_base

@@ -33,7 +33,7 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
-disable=W0611,C0111,C0103,R0201,W0142,I0011,R0904,R0903
+disable=C0111,C0103,R0201,W0142,I0011,R0904,R0903
 
 # Disabled warnings to allow:
 #   No Docstrings.

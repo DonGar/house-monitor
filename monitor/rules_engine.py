@@ -4,8 +4,6 @@ import datetime
 from itertools import groupby
 import logging
 
-from twisted.web.client import getPage
-
 import monitor.actions
 from monitor.util import repeat
 

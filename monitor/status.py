@@ -2,7 +2,6 @@
 
 import copy
 import logging
-import urlparse
 
 from twisted.internet import defer
 from twisted.internet import reactor

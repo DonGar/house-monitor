@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import logging
-import os
 import shutil
 import tempfile
 import urlparse

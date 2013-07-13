@@ -3,7 +3,6 @@
 import logging
 import os
 import time
-import urllib
 
 from twisted.web.client import downloadPage
 from twisted.web.client import getPage

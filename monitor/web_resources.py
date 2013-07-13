@@ -4,20 +4,9 @@ import json
 import logging
 import time
 
-import smtplib
-import email
-import os
-
-from twisted.web.client import getPage
-from twisted.internet import base
-from twisted.internet import defer
-from twisted.internet import error
 from twisted.internet import reactor
-from twisted.internet import task
-from twisted.python.urlpath import URLPath
 from twisted.web import server
 from twisted.web.resource import Resource
-from twisted.web.util import redirectTo
 
 import monitor.actions
 
