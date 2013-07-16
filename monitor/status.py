@@ -38,6 +38,49 @@ class Status:
 
     return copy.deepcopy(values)
 
+  def get_matching(self, url):
+    """Accept urls with wild cards. Ie: status://*/button."""
+
+
+    def _get_matching_recurse(url, values, keys):
+
+      # If there are no keys left, we are done looking up.
+      if not keys:
+        return [{ 'url': url, 'status': values, 'revision': self.revision()}]
+
+      # If the first key is a wild card, replace it with every possible value
+      # and add up tghe results.
+      if keys[0] == '*':
+        result = []
+        for key in values.keys():
+          result += _get_matching_recurse(url, values, [key] + keys[1:])
+        return result
+
+      if len(keys) > 0:
+        key = keys[0]
+
+        try:
+          if key in values.keys():
+            # Recurse down on this key.
+            if not url.endswith('/'):
+              url += '/'
+            url += key
+            values = values[key]
+            return _get_matching_recurse(url, values, keys[1:])
+        except AttributeError:
+          # This means that values didn't have 'keys', and so wasn't a dict.
+          pass
+
+      # Didn't find anything.
+      return []
+
+
+
+    values = self._values
+    keys = self._parse_url(url)
+
+    return _get_matching_recurse(PREFIX, values, keys)
+
   def set(self, url, update_value):
     values = self._values
     keys = self._parse_url(url)

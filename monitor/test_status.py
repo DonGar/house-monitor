@@ -83,6 +83,102 @@ class TestStatus(monitor.util.test_base.TestBase):
     l.append(1)
     self.assertEqual(status.get('status://list'), [])
 
+  def test_get_matching(self):
+    value = {
+      'match1': { 'foo': 1 },
+      'match2': { 'foo': 2 },
+      'solo1': { 'bar': 3 },
+      'deep1': { 'sub_deep1': { 'foo': 4 },
+                 'sub_deep2': { 'foo': 5 } },
+      'deep2': { 'sub_deep1': { 'foo': 6 } }
+    }
+
+    status = self._create_status(value)
+
+    def _validate_result(url, expected):
+      self.assertEqual(sorted(status.get_matching(url)),
+                       sorted(expected))
+
+    _validate_result('status://',
+                     [{
+                        'revision': 1,
+                        'url': 'status://',
+                        'status': {
+                          'match1': { 'foo': 1 },
+                          'match2': { 'foo': 2 },
+                          'solo1': { 'bar': 3 },
+                          'deep1': { 'sub_deep1': { 'foo': 4 },
+                                     'sub_deep2': { 'foo': 5 } },
+                          'deep2': { 'sub_deep1': { 'foo': 6 } }
+                        }
+                      }])
+    _validate_result('status://match1',
+                     [{
+                        'revision': 1,
+                        'url': 'status://match1',
+                        'status': { 'foo': 1 }
+                      }])
+    _validate_result('status://match1/foo',
+                     [{
+                        'revision': 1,
+                        'url': 'status://match1/foo',
+                        'status': 1
+                      }])
+    _validate_result('status://*/foo',
+                     sorted([{
+                        'revision': 1,
+                        'url': 'status://match1/foo',
+                        'status': 1
+                      },{
+                        'revision': 1,
+                        'url': 'status://match2/foo',
+                        'status': 2
+                      }]))
+    _validate_result('status://*/bar',
+                     [{
+                        'revision': 1,
+                        'url': 'status://solo1/bar',
+                        'status': 3
+                      }])
+    _validate_result('status://*/sub_deep1/foo',
+                     [{
+                        'revision': 1,
+                        'url': 'status://deep1/sub_deep1/foo',
+                        'status': 4
+                      },
+                      {
+                        'revision': 1,
+                        'url': 'status://deep2/sub_deep1/foo',
+                        'status': 6
+                      }])
+    _validate_result('status://deep1/*/foo',
+                     [{
+                        'revision': 1,
+                        'url': 'status://deep1/sub_deep1/foo',
+                        'status': 4
+                      },
+                      {
+                        'revision': 1,
+                        'url': 'status://deep1/sub_deep2/foo',
+                        'status': 5
+                      }])
+    _validate_result('status://*/*/foo',
+                     [{
+                        'revision': 1,
+                        'url': 'status://deep1/sub_deep1/foo',
+                        'status': 4
+                      },
+                      {
+                        'revision': 1,
+                        'url': 'status://deep1/sub_deep2/foo',
+                        'status': 5
+                      },
+                      {
+                        'revision': 1,
+                        'url': 'status://deep2/sub_deep1/foo',
+                        'status': 6
+                      }])
+
   def test_set(self):
     status = self._create_status()
 
