@@ -33,8 +33,8 @@ class _ConfigActionHandler(_ConfigHandler):
 
   def render_POST(self, request):
 
-    # Expecting 'button', not 'button/stuff'
-    assert len(request.postpath) == 1
+    # Expecting 'id', not 'id/stuff'. 'id/' is also an error.
+    assert len(request.postpath) == 1, request.postpath
 
     item_id = request.postpath[0]
     return self.render_action(request, item_id)
@@ -50,11 +50,11 @@ class Button(_ConfigActionHandler):
 
     # Rmember when the button was pushed.
     # Convert to a generic action?
-    status_pushed_uri = 'status://button/%s/pushed' % item_id
+    status_pushed_uri = 'status://config/button/%s/pushed' % item_id
     self.status.set(status_pushed_uri, int(time.time()))
 
     # Run the default action, if present.
-    action_uri = 'status://button/%s/action' % item_id
+    action_uri = 'status://config/button/%s/action' % item_id
     if self.status.get(action_uri, None):
       monitor.actions.handle_action(self.status, action_uri)
 
@@ -68,7 +68,7 @@ class Host(_ConfigActionHandler):
   def render_action(self, request, item_id):
     action = request.args.get('action', [None])[0]
     if action:
-      action_uri = 'status://host/%s/actions/%s' % (item_id, action)
+      action_uri = 'status://config/host/%s/actions/%s' % (item_id, action)
       monitor.actions.handle_action(self.status, action_uri)
     request.setResponseCode(200)
     return 'Success'

@@ -19,9 +19,9 @@ import monitor.web_resources
 BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
 
-def parse_config_file():
+def parse_config_file(filename):
   """Parse a config file in .json format."""
-  config_file = os.path.join(BASE_DIR, 'config.json')
+  config_file = os.path.join(BASE_DIR, filename)
   logging.info('Reading config %s', config_file)
   if os.path.exists(config_file):
     with open(config_file, 'r') as f:
@@ -62,8 +62,9 @@ def setup():
   log_handler, log_buffer = setupLogging()
 
   # Create our global shared status
-  config = parse_config_file()
-  status = Status(config)
+  status = Status({})
+  status.set('status://server', parse_config_file('server.json'))
+  status.set('status://config', parse_config_file('config.json'))
 
   # pylint: disable=W0612
   engine = RulesEngine(status)
@@ -80,5 +81,5 @@ def setup():
   root.putChild("status", monitor.web_resources.Status(status))
   root.putChild("wake_handler", monitor.web_resources.Wake(status))
 
-  reactor.listenTCP(config['server'].get('port', 8080),
+  reactor.listenTCP(status.get('status://server/port', 8080),
                     Site(root))

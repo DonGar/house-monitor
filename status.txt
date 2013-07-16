@@ -1,0 +1,182 @@
+
+The status is a JSON structure.
+
+It contains one "server" section, and one section per adapter .
+
+Each adapter has a a unique name.
+Each component names are unique within the scope of their adapter.
+No component type may appear more than once per adapter.
+All component types are optional in each adapter.
+
+
+
+status := <server>, <adapter>+
+
+<adapter> := "<name>": { <component_type>* }
+
+<component_type> := "<component_type_name>": {
+  <component values> These are defined below by example.
+}
+
+<component_type_name> := "button" | "camera" | "host" | "rule" ...
+
+
+<server> :=
+"server": {
+  // The server_config contains a few constants for configuring this server.
+
+  // Optional, Port to serve from (8080 is default)
+  "port": 1234,
+
+  // Directory in which downloaded files are saved.
+  "downloads": "<directory_name>",
+
+  // Local timezone on the server. Used for time based rules.
+  "timezone": "US/Pacific",
+
+  // Latitude/Longitude of the server. Used to find sunrise/sunset times.
+  "latitude": "37.3861",
+  "longitude": "-122.0839",
+
+  "email_address": "<default_address_email_actions>"
+
+  // Define which adapters create which sources.
+  "adapters": <TBD>
+}
+
+
+// Components
+
+"button": {
+  // Represents a button which may be pushed. Each push is considered
+  // instantantious. The button has no state other than the last time it was
+  // pushed.
+
+  // http://<server>/button/<button_name> will push the named button.
+  "<button_name>": {
+    // Action to fire when button is pushed.
+    "action": <action>  // Optional
+
+    // Always updated with curren time if button is pushed. May not exist until
+    // after first push.
+    "pushed": 0    // Optional
+  }
+}
+
+"camera": {
+  // A Camera is basically a host with a snapshot URL attached to it.
+  "<name>": {
+    "<hostname>": "<fqdn>", // Defaults to 'name'
+    "snapshot": "<snapshot_url>",
+    "actions": {    // Optional
+      "action_name": <action>
+      ...
+    }
+  },
+  ...
+}
+
+"host": {
+  // A host represents a remote computer on the network.
+
+  // Hosts are pinged regularly and the property 'up' is updated based on
+  //   ping results.
+
+  // http://<server>/host/<hostname>/<action_name> will fire the action attached to
+  //   a host.
+  "<name>": {
+    "<hostname>": "<fqdn>",
+    "actions": {   // Optional
+      "<action_name>": <action>
+      ...
+    }
+  },
+  ...
+}
+
+"rule": {
+  // All rules will be handled by the Rules Engine, and will fire their
+  //   defined actions when conditions are met.
+
+  // React to a status change.
+  "<rule_name>": {
+    // If the status changes, fire the action.
+    "behavior": "watch",
+    "value": "status://some/status",
+    "trigger": <any_json_value>, // optional, only fire if changes to trigger.
+    "action": <action>
+  }
+
+  // Fire once a day.
+  "<rule_name>": {
+    // Request a URL on a repeating interval.
+    "behavior": "daily",
+    "time": "sunset", // "sunset", "sunrise", "12:34:56"
+    "action": <action>
+  }
+
+  // Fire at defined intervals, all day long.
+  "<rule_name>": {
+    // Request a URL on a repeating interval.
+    "behavior": "interval",
+    "time": "00:05:00", // Repeat every X time periods from previous midnight.
+    "action": <action>
+  }
+}
+
+
+// Actions
+
+// A status URL means perform an action from another location in status.
+"status://path/to/action"
+
+// An external URL is a shortcut version of "fetch_url" with no download_name.
+"http://some_wonderful/url"
+
+// A list contains a list of actions to be performed sequentially.
+[<action>, ...]
+
+{
+  // Fetch the URL listed.
+  //
+  // If a download_name is present, save contents in directory
+  // specified by config://server/downloads.
+  //
+  // The field {time} (if present) will be replaced with the results of
+  // time.time().
+  //
+  "action": "fetch_url",
+  "url": "http://wonderful/url",
+  "download_name": "test-{time}.txt"   // Optional
+},
+{
+  // Set data into a status URL. Either copy from src, or from value.
+  "action": "set",
+  "src": "status://status/location",   // "src" OR "value", not both.
+  "value": <any_json_value>,
+  "dest": "status://status/location/"
+},
+{
+  "action": "wol",
+  "mac": "11:22:33:44:55:66"
+},
+{
+  "action": "ping",
+  "hostname": "<hostname>",
+  "dest": "status://where/to/update"
+},
+{
+  "action": "email",
+
+  "to": "",                      // Defaults to server/default_email
+  "subject": "",                 // Default ""
+  "body": "",                    // Default ""
+  "attachments": [               // Optional section.
+    {
+      "url": "http://resource/url",
+      "download_name": "foo.{time}.jpg",
+      "preserve": true           // Do we keep a copy in downloads
+                                 //   default true.
+    }
+  ]
+}

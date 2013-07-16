@@ -9,11 +9,11 @@ import monitor.util.ping
 
 def update_ping_result(status, host, value):
   logging.info('Updating %s to %s', host, value)
-  uri = 'status://host/%s/up' % host
+  uri = 'status://config/host/%s/up' % host
   status.set(uri, value)
 
 def schedule_update_all_ping_status(status):
-  for host in status.get('status://host'):
+  for host in status.get('status://config/host'):
     logging.info('Pinging %s', host)
     d = threads.deferToThread(monitor.util.ping.ping, host)
     d.addCallback(lambda value, host=host: update_ping_result(status,

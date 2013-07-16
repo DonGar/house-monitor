@@ -36,7 +36,7 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     return d
 
   def test_unknown_button(self):
-    status = self._create_status({ 'button': { 'foo': {}} })
+    status = self._create_status({'config': {'button': {'foo': {}}}})
 
     # Setup
     request_unknown = DummyRequest(['unknown'])
@@ -48,22 +48,22 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     self.assertRaises(AssertionError, self._render, resource, request_malformed)
 
   def test_button_no_action(self):
-    status = self._create_status({ 'button': { 'foo': {}} })
+    status = self._create_status({'config': {'button': {'foo': {}}}})
 
     request = DummyRequest(['foo'])
     expected_actions = []
     return self._test_button_helper(status, request, expected_actions,
-                                    'status://button/foo/pushed')
+                                    'status://config/button/foo/pushed')
 
   def test_button_action(self):
-    status = self._create_status({ 'button': { 'foo':
-                                               { 'action': 'action_pushed',
-                                                 'pushed': 4 }}})
+    status = self._create_status({'config': {'button': {'foo':
+                                     { 'action': 'action_pushed',
+                                       'pushed': 4 }}}})
 
     request = DummyRequest(['foo'])
-    expected_actions = [mock.call(status, 'status://button/foo/action')]
+    expected_actions = [mock.call(status, 'status://config/button/foo/action')]
     return self._test_button_helper(status, request, expected_actions,
-                                    'status://button/foo/pushed')
+                                    'status://config/button/foo/pushed')
 
 
 class TestWebResourcesHost(monitor.util.test_base.TestBase):
@@ -88,7 +88,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_unknown_host(self):
     status = self._create_status(
-        { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+        {'config': {'host': {'foo': {'actions': {'bar': 'action_bar' }}}}})
 
     # Setup
     request_unknown = DummyRequest(['unknown'])
@@ -101,7 +101,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_host_no_action(self):
     status = self._create_status(
-        { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+        {'config': { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}}})
 
     request = DummyRequest(['foo'])
     expected_actions = []
@@ -110,11 +110,12 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_host_explicit_action(self):
     status = self._create_status(
-        { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}})
+        {'config': { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}}})
 
     request = DummyRequest(['foo'])
     request.addArg('action', 'bar')
-    expected_actions = [mock.call(status, 'status://host/foo/actions/bar')]
+    expected_actions = [mock.call(status,
+                                  'status://config/host/foo/actions/bar')]
 
     return self._test_host_helper(status, request, expected_actions)
 
