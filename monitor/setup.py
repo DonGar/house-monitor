@@ -58,13 +58,28 @@ def setupLogging():
   return buffer_handler, log_buffer
 
 
+def setupAdapters(status):
+  adapters = status.get('status://server/adapters')
+
+  for name, settings in adapters.iteritems():
+    adapter_type = settings['type']
+    adapter_uri = 'status://%s' % name
+    if adapter_type == 'file':
+      filename = settings.get('filename', '%s.json' % name)
+      status.set(adapter_uri, parse_config_file(filename))
+    else:
+      msg = 'Unknown adapter type "%s"' % adapter_type
+      logging.error(msg)
+      raise Exception(msg)
+
 def setup():
   log_handler, log_buffer = setupLogging()
 
   # Create our global shared status
   status = Status()
   status.set('status://server', parse_config_file('server.json'))
-  status.set('status://config', parse_config_file('config.json'))
+
+  setupAdapters(status)
 
   # pylint: disable=W0612
   engine = RulesEngine(status)

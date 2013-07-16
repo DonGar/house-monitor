@@ -7,4 +7,7 @@ bin/
 lib/
 include/
 *.sublime-workspace
+
+# Specific config files for this project.
 config.json
+server.json

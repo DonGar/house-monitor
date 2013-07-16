@@ -41,7 +41,19 @@ status := <server>, <adapter>+
   "email_address": "<default_address_email_actions>"
 
   // Define which adapters create which sources.
-  "adapters": <TBD>
+  "adapters": {
+    "<name>": {   // will be created at status://name
+      "type": "<type>",
+      .... type specific arguments, if any ...
+    }
+  }
+}
+
+// Adapters
+
+"<name>": {
+  "type": "file",
+  "filename": "<filename>"  // Optional, defaults to '<name>.json'
 }
 
 
