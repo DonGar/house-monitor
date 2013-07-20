@@ -87,6 +87,9 @@ class Status:
     final_key = keys.pop()
 
     for key in keys:
+      if key not in values:
+        values[key] = {}
+
       values = values[key]
 
     if final_key not in values or values[final_key] != update_value:

@@ -213,6 +213,12 @@ class TestStatus(monitor.util.test_base.TestBase):
     self.assertEqual(status.get('status://dict/sub1'), 5)
     self.assertEqual(status.revision(), 4)
 
+    # Set a nested value with new intermediate paths.
+    status.set('status://nest1/nest2/nest3', 'foo')
+    self.assertEqual(status.get('status://nest1'),
+                     {'nest2': {'nest3': 'foo' }})
+    self.assertEqual(status.revision(), 5)
+
 
   def _expected_result(self, revision=1, url='status://', value=None):
     return { 'revision': revision,
