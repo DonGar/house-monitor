@@ -262,6 +262,133 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     self._add_assert_timeout(d)
     return d
 
+  def test_post_simple(self):
+    monitor.adapters.WebAdapter._test_clear_state()
+    status = self._create_status({})
+
+    # Create a web adapter for /web.
+    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['web'])
+    request.method = 'PUT'
+    request.addArg('value', '{ "inserted": "value" }')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written), 'Success')
+      self.assertEquals(status.get(), { 'web': { 'inserted': 'value'}})
+
+    d.addCallback(rendered)
+    return d
+
+  def test_post_nested(self):
+    monitor.adapters.WebAdapter._test_clear_state()
+    status = self._create_status({})
+
+    # Create a web adapter for /web.
+    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['web', 'sub', 'sub2'])
+    request.method = 'PUT'
+    request.addArg('value', '{ "inserted": "value" }')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written), 'Success')
+      self.assertEquals(status.get(), { 'web': {'sub': {'sub2':
+                                          { 'inserted': 'value'}}}})
+
+    d.addCallback(rendered)
+    return d
+
+  def test_post_invalid(self):
+    monitor.adapters.WebAdapter._test_clear_state()
+    status = self._create_status({})
+
+    # Create a web adapter for /web.
+    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['unknown'])
+    request.method = 'PUT'
+    request.addArg('value', '{ "inserted": "value" }')
+
+    # Create and validate the response.
+    self.assertRaises(AssertionError,
+                      self._render, resource, request)
+
+  def test_post_revision(self):
+    monitor.adapters.WebAdapter._test_clear_state()
+    status = self._create_status({})
+
+    # Create a web adapter for /web.
+    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['web'])
+    request.method = 'PUT'
+    request.addArg('value', '{ "inserted": "value" }')
+    request.addArg('revision', '2')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written), 'Success')
+      self.assertEquals(status.get(), { 'web': { 'inserted': 'value'}})
+
+    d.addCallback(rendered)
+    return d
+
+  def test_post_bad_revision(self):
+    monitor.adapters.WebAdapter._test_clear_state()
+    status = self._create_status({})
+
+    # Create a web adapter for /web.
+    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = DummyRequest(['web'])
+    request.method = 'PUT'
+    request.addArg('value', '{ "inserted": "value" }')
+    request.addArg('revision', '23')
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+
+    def rendered(_):
+      self.assertEquals(request.responseCode, 412)  # Precondition Failure
+      self.assertEquals(''.join(request.written), 'Revision mismatch.')
+      self.assertEquals(status.get(), { 'web': {}})
+
+    d.addCallback(rendered)
+    return d
+
+
 class TestWebResourcesRestart(monitor.util.test_base.TestBase):
   def test_restart(self):
     status = self._create_status()

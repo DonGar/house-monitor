@@ -50,3 +50,6 @@ class WebAdapter(Adapter):
 
     return False
 
+  @classmethod
+  def _test_clear_state(cls):
+    del cls._web_adapters[:]

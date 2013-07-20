@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import time
 
 from twisted.internet import reactor
@@ -57,7 +58,7 @@ class Button(_ConfigActionHandler):
     # Remember when the button was pushed.
     # Convert to a generic action.
 
-    button_search_url = 'status://*/button/%s' % component_id
+    button_search_url = os.path.join('status://*/button', component_id)
     buttons = self.status.get_matching(button_search_url)
 
     if not buttons:
@@ -67,11 +68,11 @@ class Button(_ConfigActionHandler):
       url = button['url']
 
       # Update when the button was pushed.
-      pushed_url = url + '/pushed'
+      pushed_url = os.path.join(url, 'pushed')
       self.status.set(pushed_url, int(time.time()))
 
       # Run the default action, if present.
-      action_uri = url + '/action'
+      action_uri = os.path.join(url, 'action')
       if self.status.get(action_uri, None):
         monitor.actions.handle_action(self.status, action_uri)
 
@@ -85,7 +86,7 @@ class Host(_ConfigActionHandler):
   def render_action(self, request, component_id):
 
 
-    host_search_url = 'status://*/host/%s' % component_id
+    host_search_url = os.path.join('status://*/host', component_id)
     hosts = self.status.get_matching(host_search_url)
 
     if not hosts:
@@ -97,7 +98,7 @@ class Host(_ConfigActionHandler):
       action = request.args.get('action', [None])[0]
 
       if action:
-        action_uri = '%s/actions/%s' % (url, action)
+        action_uri = os.path.join(url, 'actions', action)
         monitor.actions.handle_action(self.status, action_uri)
 
     request.setResponseCode(200)
@@ -159,17 +160,30 @@ class Restart(_ConfigHandler):
     return 'Success'
 
 
-class Status(_ConfigHandler):
+class Status(Resource):
 
-  def render_POST(self, request):
-    logging.info('Request: %s', request.uri)
+  isLeaf = True
+
+  def __init__(self, status):
+    Resource.__init__(self)
+    self.status = status
+
+  def render_GET(self, request):
+    logging.info('GET Request: %s', request.uri)
 
     # args['revision'] -> ['123'] if present at all
     revision = int(request.args.get('revision', [0])[0])
-    status_url = 'status://' + '/'.join(request.postpath)
+    status_url = os.path.join('status://', *request.postpath)
+
+    def _send_update(value):
+      request.setResponseCode(200)
+      request.setHeader('content-type', 'application/json')
+      request.write(json.dumps(value, sort_keys=True, indent=4))
+      request.finish()
+      return value
 
     notification = self.status.deferred(revision, status_url)
-    notification.addCallback(self.send_update, request)
+    notification.addCallback(_send_update)
 
     # If we get cut off while waiting to respond, it's pretty normal. Don't
     # error out.
@@ -178,12 +192,32 @@ class Status(_ConfigHandler):
 
     return server.NOT_DONE_YET
 
-  def send_update(self, value, request):
+  def render_PUT(self, request):
+    logging.info('PUT Request: %s', request.uri)
+
+    status_url = os.path.join('status://', *request.postpath)
+
+    assert monitor.adapters.WebAdapter.web_updatable(status_url)
+
+    # If a revision number was passed in, verify it matches our current
+    # revision number. It would be better to verify that the value in question
+    # hasn't been updated since the revision that was passed in, but that's
+    # not currently possible.
+    if 'revision' in request.args:
+      revision = int(request.args['revision'][0])
+
+      if revision != self.status.revision():
+        request.setResponseCode(412) # Precondition Failure
+        return 'Revision mismatch.'
+
+    value_str = request.args['value'][0]
+    value_parsed = json.loads(value_str)
+
+    # Do the actual PUT.
+    self.status.set(status_url, value_parsed)
+
     request.setResponseCode(200)
-    request.setHeader('content-type', 'application/json')
-    request.write(json.dumps(value, sort_keys=True, indent=4))
-    request.finish()
-    return value
+    return 'Success'
 
 
 class Wake(_ConfigHandler):
