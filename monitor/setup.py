@@ -11,8 +11,9 @@ from twisted.internet import reactor
 from twisted.web.static import File
 from twisted.web.server import Site
 
-from monitor.rules_engine import RulesEngine
-from monitor.status import Status
+import monitor.adapters
+import monitor.rules_engine
+import monitor.status
 import monitor.up
 import monitor.web_resources
 
@@ -61,28 +62,33 @@ def setupLogging():
 def setupAdapters(status):
   adapters = status.get('status://server/adapters')
 
+  adapter_types = {
+    'file': monitor.adapters.FileAdapter,
+    'web': monitor.adapters.WebAdapter,
+  }
+
   for name, settings in adapters.iteritems():
     adapter_type = settings['type']
-    adapter_uri = 'status://%s' % name
-    if adapter_type == 'file':
-      filename = settings.get('filename', '%s.json' % name)
-      status.set(adapter_uri, parse_config_file(filename))
-    else:
-      msg = 'Unknown adapter type "%s"' % adapter_type
-      logging.error(msg)
-      raise Exception(msg)
+    adapter_url = 'status://%s' % name
+
+    assert adapter_type in adapter_types, ('Unknown adapter types %s' %
+                                           adapter_type)
+    adapter_class = adapter_types[settings['type']]
+
+    # pylint: disable=W0612
+    adapter = adapter_class(status, adapter_url, name, settings)
 
 def setup():
   log_handler, log_buffer = setupLogging()
 
   # Create our global shared status
-  status = Status()
+  status = monitor.status.Status()
   status.set('status://server', parse_config_file('server.json'))
 
   setupAdapters(status)
 
   # pylint: disable=W0612
-  engine = RulesEngine(status)
+  engine = monitor.rules_engine.RulesEngine(status)
 
   monitor.up.setup(status)
 
