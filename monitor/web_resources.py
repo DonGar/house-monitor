@@ -12,6 +12,8 @@ import monitor.actions
 
 from monitor.util import wake_on_lan
 
+class UnknownComponent(Exception):
+  pass
 
 class _ConfigHandler(Resource):
   """Create a handler uses the POST handler for GET requests."""
@@ -33,43 +35,71 @@ class _ConfigActionHandler(_ConfigHandler):
 
   def render_POST(self, request):
 
-    # Expecting 'id', not 'id/stuff'. 'id/' is also an error.
+    # If postpath ended with /, there is a trailing empty string. Ditch it.
+    if request.postpath and request.postpath[-1] == '':
+      request.postpath.pop()
+
+    # Expecting 'adapter/id'. Anything else is bad
     assert len(request.postpath) == 1, request.postpath
 
-    item_id = request.postpath[0]
-    return self.render_action(request, item_id)
+    component_id = request.postpath[0]
+    return self.render_action(request, component_id)
 
-  def render_action(self, _request, _item_id):
+  def render_action(self, _request, _component_id):
     raise Exception('render_action not implemented.')
 
 
 class Button(_ConfigActionHandler):
   """Create a handler that records a button push."""
 
-  def render_action(self, request, item_id):
+  def render_action(self, request, component_id):
 
-    # Rmember when the button was pushed.
-    # Convert to a generic action?
-    status_pushed_uri = 'status://config/button/%s/pushed' % item_id
-    self.status.set(status_pushed_uri, int(time.time()))
+    # Remember when the button was pushed.
+    # Convert to a generic action.
 
-    # Run the default action, if present.
-    action_uri = 'status://config/button/%s/action' % item_id
-    if self.status.get(action_uri, None):
-      monitor.actions.handle_action(self.status, action_uri)
+    button_search_url = 'status://*/button/%s' % component_id
+    buttons = self.status.get_matching(button_search_url)
+
+    if not buttons:
+      raise UnknownComponent(component_id)
+
+    for button in buttons:
+      url = button['url']
+
+      # Update when the button was pushed.
+      pushed_url = url + '/pushed'
+      self.status.set(pushed_url, int(time.time()))
+
+      # Run the default action, if present.
+      action_uri = url + '/action'
+      if self.status.get(action_uri, None):
+        monitor.actions.handle_action(self.status, action_uri)
 
     request.setResponseCode(200)
     return 'Success'
 
 
 class Host(_ConfigActionHandler):
-  """Create a handler that records a button push."""
+  """Create a handler that records a request host action."""
 
-  def render_action(self, request, item_id):
-    action = request.args.get('action', [None])[0]
-    if action:
-      action_uri = 'status://config/host/%s/actions/%s' % (item_id, action)
-      monitor.actions.handle_action(self.status, action_uri)
+  def render_action(self, request, component_id):
+
+
+    host_search_url = 'status://*/host/%s' % component_id
+    hosts = self.status.get_matching(host_search_url)
+
+    if not hosts:
+      raise UnknownComponent(component_id)
+
+    for host in hosts:
+      url = host['url']
+
+      action = request.args.get('action', [None])[0]
+
+      if action:
+        action_uri = '%s/actions/%s' % (url, action)
+        monitor.actions.handle_action(self.status, action_uri)
+
     request.setResponseCode(200)
     return 'Success'
 
