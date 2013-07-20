@@ -4,5 +4,8 @@ cd `dirname $0`
 
 /usr/bin/python virtualenv.py .
 
+# I don't know why this is created.
+rm -rf local
+
 source bin/activate
-pip install --upgrade twisted pyephem pytz pylint mock
+pip install --upgrade twisted pyephem pytz pylint mock pysnmp
