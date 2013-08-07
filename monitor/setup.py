@@ -54,6 +54,7 @@ def setupAdapters(status):
 
   adapter_types = {
     'file': monitor.adapters.FileAdapter,
+    'iogear': monitor.adapters.IOGearAdapter,
     'web': monitor.adapters.WebAdapter,
   }
 

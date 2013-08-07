@@ -56,6 +56,15 @@ status := <server>, <adapter>+
   "filename": "<filename>"  // Optional, defaults to '<name>.json'
 }
 
+"<name>": {
+  "type": "web"
+}
+
+"<name>": {
+  "type": "iogear",
+  "port": "/dev/ttyASM0"
+}
+
 
 // Components
 
