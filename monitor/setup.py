@@ -19,16 +19,6 @@ import monitor.web_resources
 
 BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
-
-def parse_config_file(filename):
-  """Parse a config file in .json format."""
-  config_file = os.path.join(BASE_DIR, filename)
-  logging.info('Reading config %s', config_file)
-  if os.path.exists(config_file):
-    with open(config_file, 'r') as f:
-      return json.load(f)
-
-
 def setupLogging():
 
   formatter = logging.Formatter(
@@ -81,10 +71,14 @@ def setupAdapters(status):
 def setup():
   log_handler, log_buffer = setupLogging()
 
-  # Create our global shared status
   status = monitor.status.Status()
-  status.set('status://server', parse_config_file('server.json'))
 
+  # Create our global shared status. Sort of a hard coded file adapter.
+  config_file = os.path.join(BASE_DIR, 'server.json')
+  with open(config_file, 'r') as f:
+    status.set('status://server', json.load(f))
+
+  # Setup the normal adapters.
   setupAdapters(status)
 
   # pylint: disable=W0612

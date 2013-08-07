@@ -21,12 +21,12 @@ class TestFileAdapter(monitor.util.test_base.TestBase):
 
     UNIQUE = object()
 
-    with mock.patch('monitor.setup.parse_config_file',
+    with mock.patch('monitor.adapters.FileAdapter.parse_config_file',
                     return_value=UNIQUE,
                     autospec=True) as m_parser:
       with mock.patch('monitor.status.Status.set', autospec=True) as m_set:
-        monitor.adapters.FileAdapter(status, url, name, json)
-        m_parser.assert_called_once_with('foo.json')
+        a = monitor.adapters.FileAdapter(status, url, name, json)
+        m_parser.assert_called_once_with(a, 'foo.json')
         m_set.assert_called_once_with(status, 'status://foo', UNIQUE)
 
   def test_load_explicit_filename(self):
@@ -37,12 +37,12 @@ class TestFileAdapter(monitor.util.test_base.TestBase):
 
     UNIQUE = object()
 
-    with mock.patch('monitor.setup.parse_config_file',
+    with mock.patch('monitor.adapters.FileAdapter.parse_config_file',
                     return_value=UNIQUE,
                     autospec=True) as m_parser:
       with mock.patch('monitor.status.Status.set', autospec=True) as m_set:
-        monitor.adapters.FileAdapter(status, url, name, json)
-        m_parser.assert_called_once_with('bar.json')
+        a = monitor.adapters.FileAdapter(status, url, name, json)
+        m_parser.assert_called_once_with(a, 'bar.json')
         m_set.assert_called_once_with(status, 'status://foo', UNIQUE)
 
 

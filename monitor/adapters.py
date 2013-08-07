@@ -1,8 +1,15 @@
 #!/usr/bin/python
 
+import json
 import logging
+import os
 
-import monitor
+from twisted.internet import reactor
+from twisted.internet import protocol
+from twisted.internet import serialport
+
+BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+
 
 # A lot of variables get defined inside setup, called from init.
 # pylint: disable=W0201
@@ -29,7 +36,15 @@ class FileAdapter(Adapter):
     self.filename = self.adapter_json.get('filename', '%s.json' % self.name)
 
     logging.info('Adapting %s -> %s', self.filename, self.url)
-    self.status.set(self.url, monitor.setup.parse_config_file(self.filename))
+    self.status.set(self.url, self.parse_config_file(self.filename))
+
+  def parse_config_file(self, filename):
+    """Parse a config file in .json format."""
+    config_file = os.path.join(BASE_DIR, filename)
+    logging.info('Reading config %s', config_file)
+    if os.path.exists(config_file):
+      with open(config_file, 'r') as f:
+        return json.load(f)
 
 
 class WebAdapter(Adapter):
