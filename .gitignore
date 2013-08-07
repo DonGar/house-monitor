@@ -6,6 +6,7 @@
 bin/
 lib/
 include/
+local/
 *.sublime-workspace
 
 # Specific config files for this project.
