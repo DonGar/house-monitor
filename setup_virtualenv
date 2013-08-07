@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 set -e
@@ -11,6 +12,7 @@ virtualenv .
 # I don't know why this is created.
 rm -rf local
 
-source bin/activate
-pip install --upgrade twisted pyephem pylint mock pysnmp
+. bin/activate
+
+pip install --upgrade twisted pyephem pylint mock pysnmp pyserial
 easy_install --upgrade pytz
