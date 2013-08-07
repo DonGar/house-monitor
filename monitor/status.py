@@ -103,7 +103,7 @@ class Status:
       logging.info('New revision %d', self.revision())
       self._notify()
 
-  def deferred(self, revision, url='status://'):
+  def deferred(self, revision=0, url='status://'):
     """Create a deferred that's called when status is next updated.
 
        If an outdated revision is provided, we will call back right away.
