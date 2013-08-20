@@ -74,12 +74,13 @@ class IOGearAdapter(Adapter, protocol.Protocol):
   def setup(self):
     # Read our file, and attach it to the status.
     self.port = self.adapter_json.get('port')
+    self.name = self.adapter_json.get('name', 'iogear')
 
-    logging.info('IOGear on port %s', self.port)
+    logging.info('IOGear %s on port %s', self.name, self.port)
 
     # Active stores which port is active.
-    self.active_url = os.path.join(self.url, 'iogear', 'active')
-    self.target_url = os.path.join(self.url, 'iogear', 'target')
+    self.active_url = os.path.join(self.url, 'iogear', self.name, 'active')
+    self.target_url = os.path.join(self.url, 'iogear', self.name, 'target')
 
     # Setup our state values with None.
     self.status.set(self.active_url, None)
