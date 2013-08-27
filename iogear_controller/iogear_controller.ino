@@ -30,11 +30,11 @@ void setup() {
   // Serial if you need it
   Serial.begin(9600);
   Serial.setTimeout(100);  // Never block reads more than 100 milliseconds
-  
+
   runDiagnostic();
-  
+
   // Move to default computer so we know active device.
-  setActive(3);
+  setActive(1);
   reportState();
 }
 
@@ -58,7 +58,7 @@ void loop() {
 
 void setActive(int i) {
   active = i;
-  
+
   digitalWrite(buttonPin[i], LOW);
   digitalWrite(ledPin[i], HIGH);
 
@@ -80,12 +80,12 @@ void runDiagnostic()
   for (int j = 0; j < 2; j++) {
     for (int i = 0; i < 4; i++)
       digitalWrite(ledPin[i], HIGH);
-  
+
     delay(200);
-  
+
     for (int i = 0; i < 4; i++)
       digitalWrite(ledPin[i], LOW);\
-      
+
     delay(200);
   }
 }
