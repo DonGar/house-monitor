@@ -88,9 +88,9 @@ class IOGearAdapter(Adapter, protocol.Protocol):
 
     self.serial_port = serialport.SerialPort(self, self.port, reactor)
 
-    # Send a bogus message. This will get a reponse to dataReceived and populate
+    # Send a query message. This will get a reponse to dataReceived and populate
     # the active_url.
-    self.sendData('u')
+    self.sendData('?')
 
     # Start watching target.
     self.status.deferred(url=self.target_url).addCallback(self._target_updated)

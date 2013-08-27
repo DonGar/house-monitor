@@ -49,6 +49,8 @@ void loop() {
 
   if (target >= 0 && target <= 3) {
     setActive(target);
+  } else if (received = '?') {
+    // Reporting the state is the only reaction.
   } else {
     runDiagnostic();
   }
