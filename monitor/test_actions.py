@@ -32,6 +32,30 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     self.status = self._create_status(STATUS_VALUES)
 
+  def test_handle_action_delayed(self):
+    """Verify handle_action with a delayed action."""
+
+    action_delayed = {
+      'action': 'delayed',
+      'seconds': 1,
+      'delayed_action': {
+          'action': 'wol',
+          'mac': '11:22:33:44:55:66',
+        }
+    }
+
+    patch = mock.patch('monitor.util.wake_on_lan.wake_on_lan',
+                       autospec=True)
+    mocked = patch.start()
+
+    def verify_delayed_action(_):
+      mocked.assert_called_once_with('11:22:33:44:55:66')
+      patch.stop()
+
+    d = monitor.actions.handle_action(self.status, action_delayed)
+    d.addCallback(verify_delayed_action)
+    return d
+
   def test_handle_action_url(self):
     """Verify handle_action with status and http URL strings."""
 

@@ -158,6 +158,12 @@ status := <server>, <adapter>+
 [<action>, ...]
 
 {
+  // Run the delayed action after waiting X seconds.
+  "action": "delayed",
+  "seconds": <seconds>,
+  "delayed_action": <action>
+},
+{
   // Fetch the URL listed.
   //
   // If a download_name is present, save contents in directory
@@ -200,4 +206,4 @@ status := <server>, <adapter>+
                                  //   default true.
     }
   ]
-}
+},

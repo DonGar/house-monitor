@@ -6,6 +6,8 @@ import tempfile
 import urlparse
 
 from twisted.internet import defer
+from twisted.internet import reactor
+from twisted.internet import task
 
 import monitor.status
 import monitor.util.action
@@ -19,6 +21,17 @@ class Error(Exception):
 
 class InvalidAction(Error):
   pass
+
+
+def _handle_delayed_action(status, action):
+  logging.debug('Action: Delayed %s',
+                action['seconds'])
+
+  return task.deferLater(reactor,
+                         action['seconds'],
+                         handle_action,
+                         status,
+                         action['delayed_action'])
 
 
 def _handle_fetch_action(status, action):
@@ -139,13 +152,11 @@ def handle_action(status, action):
     referenced_action = status.get(action)
     if referenced_action is None:
       raise InvalidAction('Status URL: %s failed to resolve.' % action)
-    handle_action(status, referenced_action)
-    return
+    return handle_action(status, referenced_action)
 
   # If it's any other type of url, fetch it.
   if parsed_url:
-    monitor.util.action.get_page_wrapper(action)
-    return
+    return monitor.util.action.get_page_wrapper(action)
 
   # If it's a dictionary, act based on the 'action' key's contents.
   action_type = None
@@ -160,14 +171,14 @@ def handle_action(status, action):
 
   if action_type:
     action_mapping = {
+      'delayed': _handle_delayed_action,
       'fetch_url': _handle_fetch_action,
       'set': _handle_set_action,
       'wol': _handle_wol_action,
       'ping': _handle_ping_action,
       'email': _handle_email_action,
     }
-    action_mapping[action_type](status, action)
-    return
+    return action_mapping[action_type](status, action)
 
   # We now assume it's a list, and recurse on each element.
   for a in action:
