@@ -12,7 +12,7 @@ PREFIX = 'status://'
 # See 'status' variable at the end.
 #
 
-class Status:
+class Status(object):
 
   def __init__(self, value=None):
     if value is None:

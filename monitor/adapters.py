@@ -15,7 +15,7 @@ BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 # pylint: disable=W0201
 
 
-class Adapter:
+class Adapter(object):
   def __init__(self, status, url, name, adapter_json):
     self.status = status
     self.url = url
