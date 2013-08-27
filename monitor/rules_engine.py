@@ -7,8 +7,45 @@ import logging
 import monitor.actions
 from monitor.util import repeat
 
+from twisted.internet.defer import CancelledError
 
-class RulesEngine:
+
+class _WatchHelper(object):
+  def __init__(self, engine, rule):
+    self._engine = engine
+    self._rule = rule
+    self._deferred = None
+
+    self.start()
+
+  def start(self):
+    def cancel_ok(failure):
+      failure.trap(CancelledError)
+
+    self._deferred = self._engine.status.deferred(url=self._rule['value'])
+    self._deferred.addCallbacks(self.watch_updated, cancel_ok)
+
+  def stop(self):
+    if self._deferred:
+      self._deferred.cancel()
+      self._deferred = None
+
+  def watch_updated(self, value):
+    self.start()
+
+    # If a trigger exists in the rule, it must match to fire the rule.
+    if 'trigger' in self._rule:
+      fire_action = value == self._rule['trigger']
+    else:
+      fire_action = True
+
+    if fire_action:
+      monitor.actions.handle_action(self._engine.status, self._rule['action'])
+
+    return value
+
+
+class RulesEngine(object):
 
   # The known types of rules.
   BEHAVIORS = ('watch', 'daily', 'interval')
@@ -30,41 +67,18 @@ class RulesEngine:
     self._daily_rules = behaviors.get('daily', ())
     self._interval_rules = behaviors.get('interval', ())
 
-    # Create a list of 'last seen' values for the watch rules.
-    self._watch_last_seen = [None] * len(self._watch_rules)
-
     # Start processing watch rules.
-    self._setup_watch_processing()
+    self._watch_helpers = [_WatchHelper(self, rule) for
+                           rule in self._watch_rules]
 
     # Setup the timer base rules.
     self._setup_daily_rules()
     self._setup_interval_rules()
 
-  # Handle Mirror Rules
-  def _setup_watch_processing(self, _=None):
-    notification = self.status.deferred(self.status.revision())
-    notification.addCallback(self._setup_watch_processing)
-    self._process_watch_rules()
 
-  def _process_watch_rules(self):
-    logging.info('_process_watch_rules called')
-
-    for i in xrange(len(self._watch_rules)):
-      rule = self._watch_rules[i]
-
-      # If the values referenced by the rule hasn't changed, skip this rule.
-      value = self.status.get(rule['value'])
-      if value == self._watch_last_seen[i]:
-        continue
-      self._watch_last_seen[i] = value
-
-      # If the new value doesn't match the trigger, skip this rule.
-      trigger = rule.get('trigger', None)
-      if trigger is not None and value != trigger:
-        continue
-
-      # Fire off the rules action.
-      monitor.actions.handle_action(self.status, rule['action'])
+  def stop(self):
+    for w in self._watch_helpers:
+      w.stop()
 
   # Handle Daily Rules
   def _setup_daily_rules(self):
