@@ -275,7 +275,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # The request to make.
     request = DummyRequest(['web'])
     request.method = 'PUT'
-    request.addArg('value', '{ "inserted": "value" }')
+    request.content = mock.NonCallableMagicMock()
+    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -301,7 +302,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # The request to make.
     request = DummyRequest(['web', 'sub', 'sub2'])
     request.method = 'PUT'
-    request.addArg('value', '{ "inserted": "value" }')
+    request.content = mock.NonCallableMagicMock()
+    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -328,7 +330,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # The request to make.
     request = DummyRequest(['unknown'])
     request.method = 'PUT'
-    request.addArg('value', '{ "inserted": "value" }')
+    request.content = mock.NonCallableMagicMock()
+    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
 
     # Create and validate the response.
     self.assertRaises(AssertionError,
@@ -347,7 +350,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # The request to make.
     request = DummyRequest(['web'])
     request.method = 'PUT'
-    request.addArg('value', '{ "inserted": "value" }')
+    request.content = mock.NonCallableMagicMock()
+    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
     request.addArg('revision', '2')
 
     # Create and validate the response.
@@ -374,7 +378,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # The request to make.
     request = DummyRequest(['web'])
     request.method = 'PUT'
-    request.addArg('value', '{ "inserted": "value" }')
+    request.content = mock.NonCallableMagicMock()
+    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
     request.addArg('revision', '23')
 
     # Create and validate the response.

@@ -199,6 +199,9 @@ class Status(Resource):
 
     assert monitor.adapters.WebAdapter.web_updatable(status_url)
 
+    logging.info('PUT args: %s', request.args)
+    logging.info('PUT content: %s', request.content.getvalue())
+
     # If a revision number was passed in, verify it matches our current
     # revision number. It would be better to verify that the value in question
     # hasn't been updated since the revision that was passed in, but that's
@@ -210,7 +213,7 @@ class Status(Resource):
         request.setResponseCode(412) # Precondition Failure
         return 'Revision mismatch.'
 
-    value_str = request.args['value'][0]
+    value_str = request.content.getvalue()
     value_parsed = json.loads(value_str)
 
     # Do the actual PUT.
