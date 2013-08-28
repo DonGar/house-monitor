@@ -9,9 +9,8 @@
 // Diodes are used to protect the KVM from our output voltage.
 const int buttonPin[] = {3, 4, 5, 6};
 
-// Pins connected to LEDs to display button pushing. HIGH to display, LOW
-// for dark.
-const int ledPin[] = {7, 8, 9, 10};
+// Pin connected to a feedback LED.
+const int ledPin = 9;
 
 // Which button was pushed most recently. Might not be active on the KVM
 // if the KVM switched for any other reason.
@@ -19,13 +18,14 @@ int active = 0;  // 0 - 3, not 1-4.
 
 void setup() {
 
- // Setup our four output pins.
+  // Setup our button control pins.
   for (int i = 0; i < 4; i++) {
     pinMode(buttonPin[i], OUTPUT);
     digitalWrite(buttonPin[i], HIGH);
-    pinMode(ledPin[i], OUTPUT);
-    digitalWrite(ledPin[i], LOW);
   }
+
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
 
   // Serial if you need it
   Serial.begin(9600);
@@ -62,12 +62,12 @@ void setActive(int i) {
   active = i;
 
   digitalWrite(buttonPin[i], LOW);
-  digitalWrite(ledPin[i], HIGH);
+  digitalWrite(ledPin, HIGH);
 
   delay(1100);
 
   digitalWrite(buttonPin[i], HIGH);
-  digitalWrite(ledPin[i], LOW);
+  digitalWrite(ledPin, LOW);
 }
 
 void reportState() {
@@ -80,13 +80,11 @@ void runDiagnostic()
 {
   // Flash all of the leds twice.
   for (int j = 0; j < 2; j++) {
-    for (int i = 0; i < 4; i++)
-      digitalWrite(ledPin[i], HIGH);
+    digitalWrite(ledPin, HIGH);
 
     delay(200);
 
-    for (int i = 0; i < 4; i++)
-      digitalWrite(ledPin[i], LOW);\
+    digitalWrite(ledPin, LOW);\
 
     delay(200);
   }
