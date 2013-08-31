@@ -25,7 +25,7 @@ class TestBase(twisted.trial.unittest.TestCase):
     # timeout is a unique object guaranteed different from any other result.
     timeout = object()
     d.addCallback(self.assertIs, timeout)
-    reactor.callLater(0.1, d.callback, timeout)
+    reactor.callLater(0.01, d.callback, timeout)
 
   def _render(self, resource, request):
     result = resource.render(request)

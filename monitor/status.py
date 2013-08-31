@@ -143,12 +143,10 @@ class Status(object):
 
   def _notify(self):
     if self._notifications:
-      # This small delay notifying clients allows multiple updates to
-      # go through in a single notification.
+      # Notify clients of status changes in a new event loop iteration. This
+      # helps prevent problems with chained updates.
       if not self._pending_notify:
-        self._pending_notify = reactor.callLater(0.05, self._notify_handler)
-      else:
-        self._pending_notify.reset(0.05)
+        self._pending_notify = reactor.callLater(0, self._notify_handler)
 
   class _StatusDeferred(defer.Deferred):
     """Helper class for watching part of the status to see if it was updated.

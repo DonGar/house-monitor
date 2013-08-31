@@ -15,9 +15,6 @@ from twisted.internet import reactor
 
 # pylint: disable=W0212
 
-import twisted.internet.base
-twisted.internet.base.DelayedCall.debug = True
-
 class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def _setup_status_engine(self, rules):
@@ -54,12 +51,10 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
       finally:
         # Remove mock patch, and shutdown rules engine.
         patch.stop()
-        engine.stop()
-        #engine.stop().chainDeferred(test_finished)
-        task.deferLater(reactor, 0.1, test_finished.callback, None)
+        engine.stop().chainDeferred(test_finished)
 
     # Delay long enough for all processing callbacks to finish.
-    task.deferLater(reactor, 0.1, actions_fired_test)
+    task.deferLater(reactor, 0.01, actions_fired_test)
 
     return test_finished
 
