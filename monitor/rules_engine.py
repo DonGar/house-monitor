@@ -7,7 +7,7 @@ import logging
 import monitor.actions
 from monitor.util import repeat
 
-from twisted.internet.defer import CancelledError
+from twisted.internet import defer
 
 
 class _WatchHelper(object):
@@ -20,15 +20,18 @@ class _WatchHelper(object):
 
   def start(self):
     def cancel_ok(failure):
-      failure.trap(CancelledError)
+      # This happens normally at shutdown.
+      failure.trap(defer.CancelledError)
 
     self._deferred = self._engine.status.deferred(url=self._rule['value'])
     self._deferred.addCallbacks(self.watch_updated, cancel_ok)
 
   def stop(self):
     if self._deferred:
+      d = self._deferred
       self._deferred.cancel()
       self._deferred = None
+      return d
 
   def watch_updated(self, value):
     self.start()
@@ -77,8 +80,9 @@ class RulesEngine(object):
 
 
   def stop(self):
-    for w in self._watch_helpers:
-      w.stop()
+    deferred_list = [w.stop() for w in self._watch_helpers]
+    return defer.DeferredList([d for d in deferred_list if d],
+                              consumeErrors=True)
 
   # Handle Daily Rules
   def _setup_daily_rules(self):
