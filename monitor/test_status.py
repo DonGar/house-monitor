@@ -256,7 +256,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     status = self._create_status({ 'int': 2 })
 
     # Test that the expected notification fires after we make a change.
-    d = status.deferred(revision=1)
+    d = status.deferred()
     status.set('status://int', 3)
     d.addCallback(self.assertEquals,
                   self._expected_result(revision=2, value={'int': 3}))
@@ -267,7 +267,7 @@ class TestStatus(monitor.util.test_base.TestBase):
 
     # Make a couple of changes rapidly, and ensure we only fire with final
     # value.
-    d = status.deferred(revision=1)
+    d = status.deferred()
     status.set('status://int', 3)
     status.set('status://int', 4)
     d.addCallback(self.assertEquals,
@@ -278,6 +278,13 @@ class TestStatus(monitor.util.test_base.TestBase):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred(revision=1)
+    self._add_assert_timeout(d)
+    return d
+
+  def test_notification_default_revision(self):
+    status = self._create_status({ 'int': 2 })
+
+    d = status.deferred()
     self._add_assert_timeout(d)
     return d
 
