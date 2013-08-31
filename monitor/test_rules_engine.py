@@ -106,5 +106,29 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
     return d
 
+  def test_watch_rule_fired_twice(self):
+    """Verify handle_action with status and http URL strings."""
+
+    status, engine = self._setup_status_engine({
+                         'watch_test': {
+                           'behavior': 'watch',
+                           'value': 'status://values/set',
+                           'action': 'take_action'
+                         }
+                       })
+
+    expected_actions = [mock.call(status, 'take_action'),
+                        mock.call(status, 'take_action')]
+    d = self._test_actions_fired(engine, expected_actions)
+
+    status.set('status://values/set', 2)
+
+    # If we just set the status a second time, the two changes would be
+    # collapsed into a single notify. By delaying the second 'set', we
+    # ensure the rules engine is notified twice.
+    task.deferLater(reactor, 0, status.set, 'status://values/set', 3)
+
+    return d
+
 if __name__ == '__main__':
   unittest.main()
