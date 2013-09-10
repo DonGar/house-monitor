@@ -7,7 +7,7 @@
 // The KVM buttons activate when they reach ground. These GPIOs are set
 // to output and will act like ground if they are LOW, but not when HIGH.
 // Diodes are used to protect the KVM from our output voltage.
-const int buttonPin[] = {3, 4, 5, 6};
+const int buttonPin[] = {5, 4, 3, 2};
 
 // Pin connected to a feedback LED.
 const int ledPin = 9;
@@ -28,7 +28,7 @@ void setup() {
   digitalWrite(ledPin, LOW);
 
   // Serial if you need it
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.setTimeout(100);  // Never block reads more than 100 milliseconds
 
   runDiagnostic();
@@ -78,7 +78,7 @@ void reportState() {
 
 void runDiagnostic()
 {
-  // Flash all of the leds twice.
+  // Flash the ledd twice.
   for (int j = 0; j < 2; j++) {
     digitalWrite(ledPin, HIGH);
 
