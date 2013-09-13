@@ -176,6 +176,9 @@ class Status(Resource):
     status_url = os.path.join('status://', *request.postpath)
 
     def _send_update(value):
+      # To re-request this status value, re-request the same URL.
+      value['url'] = str(request.URLPath())
+
       request.setResponseCode(200)
       request.setHeader('content-type', 'application/json')
       request.write(json.dumps(value, sort_keys=True, indent=4))
