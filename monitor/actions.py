@@ -48,12 +48,12 @@ def _handle_fetch_action(status, action):
 
 def _handle_set_action(status, action):
   if 'src' in action:
-    logging.debug('Action: Set %s -> %s', action['src'], action['src'])
+    logging.debug('Action: Set %s -> %s', action['src'], action['dest'])
     status.set(action['dest'], status.get(action['src']))
     return
 
   if 'value' in action:
-    logging.debug('Action: Set %s -> %s', action['value'], action['value'])
+    logging.debug('Action: Set %s -> %s', action['value'], action['dest'])
     status.set(action['dest'], action['value'])
     return
 

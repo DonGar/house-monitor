@@ -100,8 +100,8 @@ class Status(object):
       values[final_key] = copy.deepcopy(update_value)
 
       # Notify listeners.
-      logging.info('New revision %d: %s -> %s',
-                   self.revision(), url, update_value)
+      logging.info('Status revision %d: %s -> %s',
+                   self.revision(), update_value, url)
       self._notify()
 
   def deferred(self, revision=None, url='status://'):
