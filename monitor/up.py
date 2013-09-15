@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import logging
-
 from twisted.internet import task
 from twisted.internet import threads
 

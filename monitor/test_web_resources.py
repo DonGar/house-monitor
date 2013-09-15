@@ -6,12 +6,14 @@ import unittest
 import mock
 
 from twisted.web.test.test_web import DummyRequest
+from twisted.python.urlpath import URLPath
 
 import monitor.util.test_base
 
 # pylint: disable=W0212
 
 class TestWebResourcesButton(monitor.util.test_base.TestBase):
+  """Test /button handler."""
 
   def _test_button_helper(self, status, request, expected_actions, time_uri):
     patch = mock.patch('monitor.actions.handle_action', autospec=True)
@@ -69,6 +71,7 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
 
 
 class TestWebResourcesHost(monitor.util.test_base.TestBase):
+  """Test /host handler."""
 
   def _test_host_helper(self, status, request, expected_actions):
     patch = mock.patch('monitor.actions.handle_action', autospec=True)
@@ -125,6 +128,39 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
 
 class TestWebResourcesStatus(monitor.util.test_base.TestBase):
+  """Test /status handler."""
+
+  def _dummy_request_get(self,
+                         url='http://example/status',
+                         path=None,
+                         revision=None):
+    if path is None:
+      path = []
+
+    # The request to make.
+    request = DummyRequest(path)
+    request.URLPath = lambda : URLPath.fromString(url)
+
+    if revision is not None:
+      request.addArg('revision', str(revision))
+
+    return request
+
+  def _dummy_request_put(self,
+                         url='http://example/status',
+                         path=None,
+                         revision=None,
+                         content=None):
+    request = self._dummy_request_get(url, path, revision)
+
+    # The request to make.
+    request.method = 'PUT'
+
+    if content is not None:
+      request.content = mock.NonCallableMagicMock()
+      request.content.getvalue = mock.Mock(return_value=content)
+
+    return request
 
   def test_status(self):
     status = self._create_status({ 'int': 2 })
@@ -133,7 +169,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest([])
+    request = self._dummy_request_get()
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -145,7 +181,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
                         '    "status": {\n'
                         '        "int": 2\n'
                         '    }, \n'
-                        '    "url": "status://"\n'
+                        '    "url": "http://example/status"\n'
                         '}')
     d.addCallback(rendered)
     return d
@@ -157,8 +193,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest([])
-    request.addArg('revision', '123')
+    request = self._dummy_request_get(revision=123)
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -170,7 +205,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
                         '    "status": {\n'
                         '        "int": 2\n'
                         '    }, \n'
-                        '    "url": "status://"\n'
+                        '    "url": "http://example/status"\n'
                         '}')
     d.addCallback(rendered)
     return d
@@ -182,8 +217,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest([])
-    request.addArg('revision', '1')
+    request = self._dummy_request_get(revision=1)
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -197,8 +231,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest([])
-    request.addArg('revision', '1')
+    request = self._dummy_request_get(revision=1)
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -210,7 +243,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
                         '    "status": {\n'
                         '        "int": 3\n'
                         '    }, \n'
-                        '    "url": "status://"\n'
+                        '    "url": "http://example/status"\n'
                         '}')
     d.addCallback(rendered)
 
@@ -225,7 +258,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['sub1', 'sub2'])
+    request = self._dummy_request_get(path=['sub1', 'sub2'])
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -235,7 +268,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
                         '{\n'
                         '    "revision": 1, \n'
                         '    "status": {}, \n'
-                        '    "url": "status://sub1/sub2"\n'
+                        '    "url": "http://example/status/sub1/sub2"\n'
                         '}')
     d.addCallback(rendered)
     return d
@@ -248,8 +281,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['sub1', 'sub2'])
-    request.addArg('revision', '1')
+    request = self._dummy_request_get(path=['sub1', 'sub2'], revision=1)
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -273,12 +305,10 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['web'])
-    request.method = 'PUT'
-    request.content = mock.NonCallableMagicMock()
-    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
+    request = self._dummy_request_put(path=['web'],
+                                      content='{ "inserted": "value" }')
 
-    # Create and validate the response.
+    #      Create and validate the response.
     d = self._render(resource, request)
 
     def rendered(_):
@@ -300,10 +330,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['web', 'sub', 'sub2'])
-    request.method = 'PUT'
-    request.content = mock.NonCallableMagicMock()
-    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
+    request = self._dummy_request_put(path=['web', 'sub', 'sub2'],
+                                      content='{ "inserted": "value" }')
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -328,10 +356,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['unknown'])
-    request.method = 'PUT'
-    request.content = mock.NonCallableMagicMock()
-    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
+    request = self._dummy_request_put(path=['unknown'],
+                                      content='{ "inserted": "value" }')
 
     # Create and validate the response.
     self.assertRaises(AssertionError,
@@ -348,11 +374,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['web'])
-    request.method = 'PUT'
-    request.content = mock.NonCallableMagicMock()
-    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
-    request.addArg('revision', '2')
+    request = self._dummy_request_put(path=['web'],
+                                      content='{ "inserted": "value" }',
+                                      revision=2)
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -376,11 +400,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     resource = monitor.web_resources.Status(status)
 
     # The request to make.
-    request = DummyRequest(['web'])
-    request.method = 'PUT'
-    request.content = mock.NonCallableMagicMock()
-    request.content.getvalue = mock.Mock(return_value='{ "inserted": "value" }')
-    request.addArg('revision', '23')
+    request = self._dummy_request_put(path=['web'],
+                                      content='{ "inserted": "value" }',
+                                      revision=23)
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -395,6 +417,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
 
 class TestWebResourcesRestart(monitor.util.test_base.TestBase):
+  """Test /restart handler."""
   def test_restart(self):
     status = self._create_status()
 
@@ -419,6 +442,7 @@ class TestWebResourcesRestart(monitor.util.test_base.TestBase):
 
 
 class TestWebResourcesWake(monitor.util.test_base.TestBase):
+  """Test /wake handler."""
   def test_wake(self):
     status = self._create_status()
 
