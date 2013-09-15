@@ -79,6 +79,30 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
       monitor.actions.handle_action(self.status, 'status://reference_indirect')
       mocked.assert_called_with('http://some/url')
 
+  def test_handle_action_list(self):
+    """Verify handle_action with lists of actions.."""
+
+    action_list = ['http://some/url', 'http://some/other/url']
+    expected_actions = [mock.call('http://some/url'),
+                        mock.call('http://some/other/url')]
+
+    with mock.patch('monitor.util.action.get_page_wrapper',
+                    autospec=True) as mocked:
+      monitor.actions.handle_action(self.status, action_list)
+      mocked.assert_has_calls(expected_actions)
+
+    nest_action_list = ['http://some/url',
+                        ['http://other/url', 'http://third/url']]
+    nest_expected_actions = [mock.call('http://some/url'),
+                             mock.call('http://other/url'),
+                             mock.call('http://third/url')]
+
+    with mock.patch('monitor.util.action.get_page_wrapper',
+                    autospec=True) as mocked:
+      monitor.actions.handle_action(self.status, nest_action_list)
+      mocked.assert_has_calls(nest_expected_actions)
+
+
   def test_handle_action_fetch(self):
     """Verify handle_action with JSON fetch action nodes."""
 
