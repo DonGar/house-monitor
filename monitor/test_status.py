@@ -317,6 +317,17 @@ class TestStatus(monitor.util.test_base.TestBase):
     self._add_assert_timeout(d)
     return d
 
+  def test_notification_non_existent_url(self):
+    status = self._create_status()
+
+    # Ask for a specialized notification.
+    url = 'status://foo'
+    d = status.deferred(url=url)
+    status.set(url, 3)
+    d.addCallback(self.assertEquals,
+                  self._expected_result(revision=2, url=url, value=3))
+    return d
+
 
 if __name__ == '__main__':
   unittest.main()
