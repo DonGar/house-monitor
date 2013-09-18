@@ -139,47 +139,52 @@ def handle_action(status, action):
     [<action>,...]
     { 'action': '', ...}
   """
-  # If action is a URL.
-  parsed_url = None
+
   try:
-    parsed_url = urlparse.urlparse(action)
-  except (TypeError, AttributeError):
-    # This means the node isn't a string, and thus not a URL.
-    pass
+    # If action is a URL.
+    parsed_url = None
+    try:
+      parsed_url = urlparse.urlparse(action)
+    except (TypeError, AttributeError):
+      # This means the node isn't a string, and thus not a URL.
+      pass
 
-  # If it's a status://url fetch the new node and act on it.
-  if parsed_url and parsed_url.scheme == 'status':
-    referenced_action = status.get(action)
-    if referenced_action is None:
-      raise InvalidAction('Status URL: %s failed to resolve.' % action)
-    return handle_action(status, referenced_action)
+    # If it's a status://url fetch the new node and act on it.
+    if parsed_url and parsed_url.scheme == 'status':
+      referenced_action = status.get(action)
+      if referenced_action is None:
+        raise InvalidAction('Status URL: %s failed to resolve.' % action)
+      return handle_action(status, referenced_action)
 
-  # If it's any other type of url, fetch it.
-  if parsed_url:
-    return monitor.util.action.get_page_wrapper(action)
+    # If it's any other type of url, fetch it.
+    if parsed_url:
+      return monitor.util.action.get_page_wrapper(action)
 
-  # If it's a dictionary, act based on the 'action' key's contents.
-  action_type = None
-  try:
-    # 'action' is a required value in all dictionary actions.
-    action_type = action['action']
-  except TypeError:
-    # This means it's not a dictionary, and not a dictionary type action.
-    # Notice that we do NOT catch KeyError which would mean 'action' wasn't
-    # present in the dictionary.
-    pass
+    # If it's a dictionary, act based on the 'action' key's contents.
+    action_type = None
+    try:
+      # 'action' is a required value in all dictionary actions.
+      action_type = action['action']
+    except TypeError:
+      # This means it's not a dictionary, and not a dictionary type action.
+      # Notice that we do NOT catch KeyError which would mean 'action' wasn't
+      # present in the dictionary.
+      pass
 
-  if action_type:
-    action_mapping = {
-      'delayed': _handle_delayed_action,
-      'fetch_url': _handle_fetch_action,
-      'set': _handle_set_action,
-      'wol': _handle_wol_action,
-      'ping': _handle_ping_action,
-      'email': _handle_email_action,
-    }
-    return action_mapping[action_type](status, action)
+    if action_type:
+      action_mapping = {
+        'delayed': _handle_delayed_action,
+        'fetch_url': _handle_fetch_action,
+        'set': _handle_set_action,
+        'wol': _handle_wol_action,
+        'ping': _handle_ping_action,
+        'email': _handle_email_action,
+      }
+      return action_mapping[action_type](status, action)
 
-  # We now assume it's a list, and recurse on each element.
-  for a in action:
-    handle_action(status, a)
+    # We now assume it's a list, and recurse on each element.
+    for a in action:
+      handle_action(status, a)
+  except Exception as e:
+    logging.error('handle_action raised: %s'. e)
+    raise
