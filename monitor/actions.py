@@ -186,5 +186,5 @@ def handle_action(status, action):
     for a in action:
       handle_action(status, a)
   except Exception as e:
-    logging.error('handle_action raised: %s'. e)
+    logging.error('handle_action raised: %s', e)
     raise
