@@ -97,12 +97,10 @@ class IOGearAdapter(Adapter, protocol.Protocol):
 
   def dataReceived(self, data):
     """Receive serial data from the IOGear Arduino hardware."""
-    print "Received: %s" % data
     self.status.set(self.active_url, data.strip())
 
   def sendData(self, data):
     """Send serial data to the IOGear Arduino hardware."""
-    print "Sending: %s" % data
     return self.transport.writeSequence(data.encode('ascii'))
 
   def _target_updated(self, status_update):
