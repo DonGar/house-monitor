@@ -2,6 +2,7 @@
 
 import copy
 import logging
+import os
 
 from twisted.internet import defer
 from twisted.internet import reactor
@@ -45,41 +46,36 @@ class Status(object):
     def _get_matching_recurse(url, values, keys):
 
       # If there are no keys left, we are done looking up.
-      if not keys:
-        return [{ 'url': url, 'status': values, 'revision': self.revision()}]
+      if len(keys) == 0:
+        return [{ 'url': url,
+                  'status': copy.deepcopy(values),
+                  'revision': self.revision()
+                }]
 
-      # If the first key is a wild card, replace it with every possible value
-      # and add up tghe results.
-      if keys[0] == '*':
-        result = []
-        for key in values.keys():
-          result += _get_matching_recurse(url, values, [key] + keys[1:])
-        return result
-
-      if len(keys) > 0:
+      try:
         key = keys[0]
 
-        try:
-          if key in values.keys():
-            # Recurse down on this key.
-            if not url.endswith('/'):
-              url += '/'
-            url += key
-            values = values[key]
-            return _get_matching_recurse(url, values, keys[1:])
-        except AttributeError:
-          # This means that values didn't have 'keys', and so wasn't a dict.
-          pass
+        # If the first key is a wild card, replace it with every possible value
+        # and add up tghe results.
+        if key == '*':
+          result = []
+          for match_key in values.keys():
+            result += _get_matching_recurse(url, values, [match_key] + keys[1:])
+          return result
+
+        # If we have keys left, and it's not a wild card, do normal expansion.
+        if key in values.keys():
+          url = os.path.join(url, key)
+          return _get_matching_recurse(url, values[key], keys[1:])
+
+      except AttributeError:
+        # This means values wasn't a dict. Can't find things in it.
+        pass
 
       # Didn't find anything.
       return []
 
-
-
-    values = self._values
-    keys = self._parse_url(url)
-
-    return _get_matching_recurse(PREFIX, values, keys)
+    return _get_matching_recurse(PREFIX, self._values, self._parse_url(url))
 
   def set(self, url, update_value):
     values = self._values
@@ -126,7 +122,7 @@ class Status(object):
     self._validate_url(url)
     result = url[len(PREFIX):].split('/')
 
-    # Fixup the slightly broken results of split.
+    # Fixup empty string results to be empty.
     if result == ['']:
       result = []
 
