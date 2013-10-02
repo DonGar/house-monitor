@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import datetime
 import mock
 import unittest
 
@@ -17,7 +18,13 @@ from twisted.internet import reactor
 
 class TestRulesEngine(monitor.util.test_base.TestBase):
 
-  def _setup_status_engine(self, rules):
+  def _setup_status_engine(self, rules, utc_now=None):
+
+    # This patch is removed by _test_actions_fired.
+    utc_patch = mock.patch('monitor.rules_engine._utc_now', autospec=True)
+    mocked_utc = utc_patch.start()
+    mocked_utc.return_value = utc_now
+
     status = self._create_status({
           'server': {
             'latitude': '37.3861',
@@ -37,9 +44,9 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
     return status, engine
 
-  def _test_actions_fired(self, engine, expected_actions):
-    patch = mock.patch('monitor.actions.handle_action', autospec=True)
-    mocked = patch.start()
+  def _test_actions_fired(self, engine, expected_actions, delay=0.01):
+    action_patch = mock.patch('monitor.actions.handle_action', autospec=True)
+    mocked_action = action_patch.start()
 
     # This deferred fires when the test is complete, and
     # the engine has shutdown.
@@ -48,30 +55,41 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     def actions_fired_test():
       try:
         # Test results of test.
-        mocked.assert_has_calls(expected_actions, any_order=True)
+        mocked_action.assert_has_calls(expected_actions, any_order=True)
       finally:
-        # Remove mock patch, and shutdown rules engine.
-        patch.stop()
+        # Remove mock patches, and shutdown rules engine.
+        mock.patch.stopall()
+
         engine.stop().chainDeferred(test_finished)
 
     # Delay long enough for all processing callbacks to finish.
-    task.deferLater(reactor, 0.01, actions_fired_test)
+    task.deferLater(reactor, delay, actions_fired_test)
 
     return test_finished
+
+  def test_rules_helper(self):
+    """Can our test_helper base class start and stop?"""
+    h = monitor.rules_engine._RuleHelper(self._create_status(),
+                                         'helper_name',
+                                         {'behavior': 'test'})
+    h.start()
+    h.stop()
 
   def test_no_rules(self):
     """Verify handle_action with status and http URL strings."""
 
     _status, engine = self._setup_status_engine({})
 
-    self.assertEquals(len(engine._interval_helpers), 0)
-    self.assertEquals(len(engine._daily_helpers), 0)
-    self.assertEquals(len(engine._watch_helpers), 0)
+    self.assertEquals(len(engine._helpers), 0)
 
     return self._test_actions_fired(engine, [])
 
+  #
+  # Watch Rule Tests
+  #
+
   def test_watch_rule_create_shutdown(self):
-    """Verify handle_action with status and http URL strings."""
+    """Setup the rules engine with a single watch rule and shut it down."""
 
     _status, engine = self._setup_status_engine({
                          'watch_test': {
@@ -81,14 +99,11 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                          }
                        })
 
-    self.assertEquals(len(engine._interval_helpers), 0)
-    self.assertEquals(len(engine._daily_helpers), 0)
-    self.assertEquals(len(engine._watch_helpers), 1)
-
+    self.assertEquals(len(engine._helpers), 1)
     return self._test_actions_fired(engine, [])
 
   def test_watch_rule_fired(self):
-    """Verify handle_action with status and http URL strings."""
+    """Setup and fire a single watch rule in the rules_engine."""
 
     status, engine = self._setup_status_engine({
                          'watch_test': {
@@ -106,7 +121,7 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     return d
 
   def test_watch_rule_fired_twice(self):
-    """Verify handle_action with status and http URL strings."""
+    """Setup and fire a single watch rule in the rules_engine twice."""
 
     status, engine = self._setup_status_engine({
                          'watch_test': {
@@ -130,7 +145,7 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     return d
 
   def test_watch_rules_fired(self):
-    """Verify handle_action with status and http URL strings."""
+    """Setup and fire two watch rules in the rules_engine."""
 
     status, engine = self._setup_status_engine({
                          'watch_test1': {
@@ -153,6 +168,73 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     status.set('status://values/two', 2)
 
     return d
+
+  #
+  # Daily Rule Tests
+  #
+
+  def test_daily_rule_create_shutdown(self):
+    """Setup the rules engine with a single daily rule and shut it down."""
+
+    _status, engine = self._setup_status_engine({
+                         'daily_test': {
+                           'behavior': 'daily',
+                           'time': '12:34:56',
+                           'action': 'take_action'
+                         }
+                       },
+                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 5, 0))
+
+    self.assertEquals(len(engine._helpers), 1)
+    return self._test_actions_fired(engine, [])
+
+  def test_daily_rule_time_fire(self):
+    """Setup the rules engine with a single daily rule and shut it down."""
+
+    status, engine = self._setup_status_engine({
+                         'daily_test': {
+                           'behavior': 'daily',
+                           'time': '19:04:06',
+                           'action': 'take_action'
+                         }
+                       },
+                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 5, 0))
+
+    return self._test_actions_fired(engine,
+                                    [mock.call(status, 'take_action')],
+                                    delay=1.1)
+
+  def test_daily_rule_sunrise_fire(self):
+    """Setup the rules engine with a single daily rule and shut it down."""
+
+    status, engine = self._setup_status_engine({
+                         'daily_test': {
+                           'behavior': 'daily',
+                           'time': 'sunrise',
+                           'action': 'take_action'
+                         }
+                       },
+                       utc_now=datetime.datetime(2000, 1, 2, 15, 47, 48, 0))
+
+    return self._test_actions_fired(engine,
+                                    [mock.call(status, 'take_action')],
+                                    delay=0.5)
+
+  def test_daily_rule_sunset_fire(self):
+    """Setup the rules engine with a single daily rule and shut it down."""
+
+    status, engine = self._setup_status_engine({
+                         'daily_test': {
+                           'behavior': 'daily',
+                           'time': 'sunset',
+                           'action': 'take_action'
+                         }
+                       },
+                       utc_now=datetime.datetime(2000, 1, 2, 4, 58, 50, 0))
+
+    return self._test_actions_fired(engine,
+                                    [mock.call(status, 'take_action')],
+                                    delay=1.1)
 
 
 if __name__ == '__main__':

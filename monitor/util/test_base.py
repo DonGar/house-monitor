@@ -2,12 +2,15 @@
 
 import unittest
 
+import twisted.internet.base
 import twisted.trial.unittest
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.web import server
 
 import monitor.web_resources
+
+twisted.internet.base.DelayedCall.debug = True
 
 class TestBase(twisted.trial.unittest.TestCase):
 

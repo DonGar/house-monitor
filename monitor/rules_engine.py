@@ -7,47 +7,8 @@ import monitor.actions
 from monitor.util import repeat
 
 from twisted.internet import defer
-
-
-class _WatchHelper(object):
-  def __init__(self, engine, name, rule):
-    self._engine = engine
-    self._name = name
-    self._rule = rule
-    self._deferred = None
-
-    self.start()
-
-  def start(self):
-    def cancel_ok(failure):
-      # This happens normally at shutdown.
-      failure.trap(defer.CancelledError)
-
-    self._deferred = self._engine.status.deferred(url=self._rule['value'])
-    self._deferred.addCallbacks(self.watch_updated, cancel_ok)
-
-  def stop(self):
-    logging.info('Stopping rule %s', self._name)
-    if self._deferred:
-      d = self._deferred
-      self._deferred.cancel()
-      self._deferred = None
-      return d
-
-  def watch_updated(self, value):
-    self.start()
-
-    # If a trigger exists in the rule, it must match to fire the rule.
-    if 'trigger' in self._rule:
-      fire_action = value == self._rule['trigger']
-    else:
-      fire_action = True
-
-    if fire_action:
-      logging.info('Firing rule: %s', self._name)
-      monitor.actions.handle_action(self._engine.status, self._rule['action'])
-
-    return value
+from twisted.internet import reactor
+from twisted.internet import task
 
 
 class RulesEngine(object):
@@ -58,9 +19,7 @@ class RulesEngine(object):
   def __init__(self, status):
     self.status = status
 
-    self._interval_helpers = []
-    self._daily_helpers = []
-    self._watch_helpers = []
+    self._helpers = []
 
     # This creates a dictionary of rules indexed by behavior string.
     #  { 'mirror': (<mirror rules>), 'interval': (<interval rules>), etc }
@@ -72,13 +31,17 @@ class RulesEngine(object):
       if rule['behavior'] == 'interval':
         self._setup_interval_rule(name, rule)
       if rule['behavior'] == 'daily':
-        self._setup_daily_rule(name, rule)
+        helper = _DailyHelper(self.status, name, rule)
+        self._helpers.append(helper)
       if rule['behavior'] == 'watch':
-        self._watch_helpers.append(_WatchHelper(self, name, rule))
+        helper = _WatchHelper(self.status, name, rule)
+        self._helpers.append(helper)
 
+    for helper in self._helpers:
+      helper.start()
 
   def stop(self):
-    deferred_list = [w.stop() for w in self._watch_helpers]
+    deferred_list = [w.stop() for w in self._helpers]
 
     # Return a deferred which will fire when all rules have been shut down. This
     # is required since our rules have outstanding deferreds whose cancel
@@ -124,3 +87,107 @@ class RulesEngine(object):
                           monitor.actions.handle_action,
                           self.status,
                           rule['action'])
+
+
+def _cancel_ok(failure):
+  # This happens normally at shutdown.
+  failure.trap(defer.CancelledError)
+
+
+class _RuleHelper(object):
+  def __init__(self, status, name, rule):
+    self._status = status
+    self._name = name
+    self._rule = rule
+    self._deferred = None
+
+    logging.info('Init %s rule %s.', self._rule['behavior'], self._name)
+
+  def start(self):
+    logging.info('Starting rule %s.', self._name)
+
+    def restart_handler(value):
+      """This function is a callback handler that sets up the next deferred."""
+      self._deferred = self.next_deferred()
+      self._deferred.addCallback(restart_handler)
+      self._deferred.addCallback(self.fire)
+      self._deferred.addErrback(_cancel_ok)
+      return value
+
+    # Setup the initial deferred.
+    restart_handler(None)
+    return self._deferred
+
+  def stop(self):
+    logging.info('Stopping rule %s', self._name)
+    if self._deferred:
+      d = self._deferred
+      self._deferred.cancel()
+      self._deferred = None
+      return d
+
+  def next_deferred(self):
+    return defer.Deferred()
+
+  def fire(self, _value):
+    raise Exception('Not Implemented')
+
+class _DailyHelper(_RuleHelper):
+  def __init__(self, status, name, rule):
+    super(_DailyHelper, self).__init__(status, name, rule)
+
+    latitude = float(self._status.get('status://server/latitude'))
+    longitude = float(self._status.get('status://server/longitude'))
+
+    # The _find_next_fire_time is a method that returns the datetime in which to
+    # next fire if passed utcnow as a datetime. The different implementations of
+    # it are how we adjust for different types of daily rules.
+
+    if self._rule['time'] == 'sunset':
+      self._find_next_fire_time = repeat.sunset_helper(latitude, longitude)
+    elif self._rule['time'] == 'sunrise':
+      self._find_next_fire_time = repeat.sunrise_helper(latitude, longitude)
+    else:
+      # Else we expect time to be in the format 'hh:mm:ss'
+      hours, minutes, seconds = [int(i) for i in self._rule['time'].split(':')]
+      time_of_day = datetime.time(hours, minutes, seconds)
+      self._find_next_fire_time = repeat.daily_helper(time_of_day)
+
+  def next_deferred(self):
+    utc_now = _utc_now()
+    time_to_fire = self._find_next_fire_time(utc_now)
+    seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
+
+    print 'Daily.next_deferred: utc_now %s seconds_delay %s' % (utc_now, seconds_delay)
+
+    return task.deferLater(reactor, seconds_delay, lambda : None)
+
+  def fire(self, value):
+    logging.info('Firing rule: %s', self._name)
+    monitor.actions.handle_action(self._status, self._rule['action'])
+
+    return value
+
+
+class _WatchHelper(_RuleHelper):
+
+  def next_deferred(self):
+    return self._status.deferred(url=self._rule['value'])
+
+  def fire(self, value):
+    # If a trigger exists in the rule, it must match to fire the rule.
+    if 'trigger' in self._rule:
+      fire_action = value == self._rule['trigger']
+    else:
+      fire_action = True
+
+    if fire_action:
+      logging.info('Firing rule: %s', self._name)
+      monitor.actions.handle_action(self._status, self._rule['action'])
+
+    return value
+
+
+def _utc_now():
+  """This method exists for unittests to patch to set current time."""
+  return datetime.datetime.utcnow()
