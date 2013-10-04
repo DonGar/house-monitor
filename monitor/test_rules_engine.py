@@ -18,12 +18,12 @@ from twisted.internet import reactor
 
 class TestRulesEngine(monitor.util.test_base.TestBase):
 
-  def _setup_status_engine(self, rules, utc_now=None):
+  def _setup_status_engine(self, rules, utc_nows=()):
 
     # This patch is removed by _test_actions_fired.
     utc_patch = mock.patch('monitor.rules_engine._utc_now', autospec=True)
     mocked_utc = utc_patch.start()
-    mocked_utc.return_value = utc_now
+    mocked_utc.side_effect = iter(utc_nows)
 
     status = self._create_status({
           'server': {
@@ -176,6 +176,10 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_daily_rule_create_shutdown(self):
     """Setup the rules engine with a single daily rule and shut it down."""
 
+    # time is hours before the rule should fire.
+    time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
+    time2 = time1 + datetime.timedelta(hours=1)
+
     _status, engine = self._setup_status_engine({
                          'daily_test': {
                            'behavior': 'daily',
@@ -183,13 +187,17 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                            'action': 'take_action'
                          }
                        },
-                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 5, 0))
+                       utc_nows=(time1, time2))
 
     self.assertEquals(len(engine._helpers), 1)
     return self._test_actions_fired(engine, [])
 
   def test_daily_rule_time_fire(self):
     """Setup the rules engine with a single daily rule and shut it down."""
+
+    # time1 0.005 seconds before rule should fire.
+    time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 995000)
+    time2 = time1 + datetime.timedelta(hours=1)
 
     status, engine = self._setup_status_engine({
                          'daily_test': {
@@ -198,43 +206,48 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                            'action': 'take_action'
                          }
                        },
-                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 5, 0))
+                       utc_nows=(time1, time2))
 
     return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')],
-                                    delay=1.1)
+                                    [mock.call(status, 'take_action')])
 
   def test_daily_rule_sunrise_fire(self):
     """Setup the rules engine with a single daily rule and shut it down."""
 
+    # time1 ~0.005 seconds before rule should fire.
+    time1 = datetime.datetime(2000, 1, 2, 15, 47, 48, 440000)
+    time2 = time1 + datetime.timedelta(hours=1)
+
     status, engine = self._setup_status_engine({
-                         'daily_test': {
+                         'daily_test_sunrise': {
                            'behavior': 'daily',
                            'time': 'sunrise',
                            'action': 'take_action'
                          }
                        },
-                       utc_now=datetime.datetime(2000, 1, 2, 15, 47, 48, 0))
+                       utc_nows=(time1, time2))
 
     return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')],
-                                    delay=0.5)
+                                    [mock.call(status, 'take_action')])
 
   def test_daily_rule_sunset_fire(self):
     """Setup the rules engine with a single daily rule and shut it down."""
 
+    # time1 ~0.005 seconds before rule should fire.
+    time1 = datetime.datetime(2000, 1, 2, 4, 58, 50, 670000)
+    time2 = time1 + datetime.timedelta(hours=1)
+
     status, engine = self._setup_status_engine({
-                         'daily_test': {
+                         'daily_test_sunset': {
                            'behavior': 'daily',
                            'time': 'sunset',
                            'action': 'take_action'
                          }
                        },
-                       utc_now=datetime.datetime(2000, 1, 2, 4, 58, 50, 0))
+                       utc_nows=(time1, time2))
 
     return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')],
-                                    delay=1.1)
+                                    [mock.call(status, 'take_action')])
 
   #
   # Interval Rule Tests
@@ -243,14 +256,19 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_interval_rule_create_shutdown(self):
     """Setup the rules engine with a single interval rule and shut it down."""
 
+    # time1 ~0.005 seconds before rule should fire.
+    time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
+    time2 = time1 + datetime.timedelta(minutes=1)
+
+    # Create a rule on 5 minute intervals.
     _status, engine = self._setup_status_engine({
-                         'interval_test': {
+                         'interval_test_shutdown': {
                            'behavior': 'interval',
                            'time': '00:05:00',
                            'action': 'take_action'
                          }
                        },
-                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 5, 0))
+                       utc_nows=(time1, time2))
 
     self.assertEquals(len(engine._helpers), 1)
     return self._test_actions_fired(engine, [])
@@ -258,8 +276,11 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_interval_rule_time_fire(self):
     """Setup the rules engine with a single interval rule and shut it down."""
 
-    # Create a rule on 5 minute intervals less than 0.01 seconds from the
-    # interval.
+    # time1 ~0.005 seconds before rule should fire.
+    time1 = datetime.datetime(2000, 1, 2, 3, 4, 59, 995000)
+    time2 = time1 + datetime.timedelta(minutes=1)
+
+    # Create a rule on 5 minute intervals.
     status, engine = self._setup_status_engine({
                          'interval_test': {
                            'behavior': 'interval',
@@ -267,7 +288,7 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                            'action': 'take_action'
                          }
                        },
-                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 59, 995000))
+                       utc_nows=(time1, time2))
 
     return self._test_actions_fired(engine,
                                     [mock.call(status, 'take_action')])
