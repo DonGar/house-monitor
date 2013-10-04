@@ -10,6 +10,9 @@ from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet import task
 
+class UnknownRuleBehavior(Exception):
+  """Raised when a rule with an unknown 'behavior' is found."""
+
 
 class RulesEngine(object):
 
@@ -29,13 +32,15 @@ class RulesEngine(object):
       assert rule['behavior'] in self.BEHAVIORS
 
       if rule['behavior'] == 'interval':
-        self._setup_interval_rule(name, rule)
-      if rule['behavior'] == 'daily':
-        helper = _DailyHelper(self.status, name, rule)
-        self._helpers.append(helper)
-      if rule['behavior'] == 'watch':
-        helper = _WatchHelper(self.status, name, rule)
-        self._helpers.append(helper)
+        helper_type = _IntervalHelper
+      elif rule['behavior'] == 'daily':
+        helper_type = _DailyHelper
+      elif rule['behavior'] == 'watch':
+        helper_type = _WatchHelper
+      else:
+        raise UnknownRuleBehavior(str(rule))
+
+      self._helpers.append(helper_type(self.status, name, rule))
 
     for helper in self._helpers:
       helper.start()
@@ -48,50 +53,6 @@ class RulesEngine(object):
     # operations require another iteration of the reactor.
     return defer.DeferredList([d for d in deferred_list if d],
                               consumeErrors=True)
-
-  # Handle Interval Rules
-  def _setup_interval_rule(self, name, rule):
-    logging.info('Init interval rule %s for %s', name, rule['time'])
-    # Multiple times a day. Expect 'time' to be in format 'hh:mm:ss'
-    hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
-    interval = datetime.timedelta(hours=hours,
-                                  minutes=minutes,
-                                  seconds=seconds)
-    delay_helper = repeat.interval_helper(interval)
-
-    # Actually start the repeating process.
-    repeat.call_repeating(delay_helper,
-                          monitor.actions.handle_action,
-                          self.status,
-                          rule['action'])
-
-  # Handle Daily Rules
-  def _setup_daily_rule(self, name, rule):
-    latitude = float(self.status.get('status://server/latitude'))
-    longitude = float(self.status.get('status://server/longitude'))
-
-    logging.info('Init daily rule %s for %s', name, rule['time'])
-    # Once a day.
-    if rule['time'] == 'sunset':
-      delay_helper = repeat.sunset_helper(latitude, longitude)
-    elif rule['time'] == 'sunrise':
-      delay_helper = repeat.sunrise_helper(latitude, longitude)
-    else:
-      # Else we expect time to be in the format 'hh:mm:ss'
-      hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
-      time_of_day = datetime.time(hours, minutes, seconds)
-      delay_helper = repeat.daily_helper(time_of_day)
-
-    # Actually start the repeating process.
-    repeat.call_repeating(delay_helper,
-                          monitor.actions.handle_action,
-                          self.status,
-                          rule['action'])
-
-
-def _cancel_ok(failure):
-  # This happens normally at shutdown.
-  failure.trap(defer.CancelledError)
 
 
 class _RuleHelper(object):
@@ -108,10 +69,15 @@ class _RuleHelper(object):
 
     def restart_handler(value):
       """This function is a callback handler that sets up the next deferred."""
+
+      # This happens normally at shutdown.
+      def cancel_ok(failure):
+        failure.trap(defer.CancelledError)
+
       self._deferred = self.next_deferred()
       self._deferred.addCallback(restart_handler)
       self._deferred.addCallback(self.fire)
-      self._deferred.addErrback(_cancel_ok)
+      self._deferred.addErrback(cancel_ok)
       return value
 
     # Setup the initial deferred.
@@ -129,8 +95,11 @@ class _RuleHelper(object):
   def next_deferred(self):
     return defer.Deferred()
 
-  def fire(self, _value):
-    raise Exception('Not Implemented')
+  def fire(self, value):
+    logging.info('Firing rule: %s', self._name)
+    monitor.actions.handle_action(self._status, self._rule['action'])
+    return value
+
 
 class _DailyHelper(_RuleHelper):
   def __init__(self, status, name, rule):
@@ -157,14 +126,29 @@ class _DailyHelper(_RuleHelper):
     utc_now = _utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
-
     return task.deferLater(reactor, seconds_delay, lambda : None)
 
-  def fire(self, value):
-    logging.info('Firing rule: %s', self._name)
-    monitor.actions.handle_action(self._status, self._rule['action'])
 
-    return value
+class _IntervalHelper(_RuleHelper):
+  def __init__(self, status, name, rule):
+    super(_IntervalHelper, self).__init__(status, name, rule)
+
+    # The _find_next_fire_time is a method that returns the datetime in which to
+    # next fire if passed utcnow as a datetime. The different implementations of
+    # it are how we adjust for different types of daily rules.
+
+    # Multiple times a day. Expect 'time' to be in format 'hh:mm:ss'
+    hours, minutes, seconds = [int(i) for i in rule['time'].split(':')]
+    interval = datetime.timedelta(hours=hours,
+                                  minutes=minutes,
+                                  seconds=seconds)
+    self._find_next_fire_time = repeat.interval_helper(interval)
+
+  def next_deferred(self):
+    utc_now = _utc_now()
+    time_to_fire = self._find_next_fire_time(utc_now)
+    seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
+    return task.deferLater(reactor, seconds_delay, lambda : None)
 
 
 class _WatchHelper(_RuleHelper):

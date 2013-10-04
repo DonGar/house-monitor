@@ -236,6 +236,42 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                                     [mock.call(status, 'take_action')],
                                     delay=1.1)
 
+  #
+  # Interval Rule Tests
+  #
+
+  def test_interval_rule_create_shutdown(self):
+    """Setup the rules engine with a single interval rule and shut it down."""
+
+    _status, engine = self._setup_status_engine({
+                         'interval_test': {
+                           'behavior': 'interval',
+                           'time': '00:05:00',
+                           'action': 'take_action'
+                         }
+                       },
+                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 5, 0))
+
+    self.assertEquals(len(engine._helpers), 1)
+    return self._test_actions_fired(engine, [])
+
+  def test_interval_rule_time_fire(self):
+    """Setup the rules engine with a single interval rule and shut it down."""
+
+    # Create a rule on 5 minute intervals less than 0.01 seconds from the
+    # interval.
+    status, engine = self._setup_status_engine({
+                         'interval_test': {
+                           'behavior': 'interval',
+                           'time': '00:05:00',
+                           'action': 'take_action'
+                         }
+                       },
+                       utc_now=datetime.datetime(2000, 1, 2, 3, 4, 59, 995000))
+
+    return self._test_actions_fired(engine,
+                                    [mock.call(status, 'take_action')])
+
 
 if __name__ == '__main__':
   unittest.main()
