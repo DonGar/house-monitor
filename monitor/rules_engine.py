@@ -158,8 +158,6 @@ class _DailyHelper(_RuleHelper):
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
 
-    print 'Daily.next_deferred: utc_now %s seconds_delay %s' % (utc_now, seconds_delay)
-
     return task.deferLater(reactor, seconds_delay, lambda : None)
 
   def fire(self, value):

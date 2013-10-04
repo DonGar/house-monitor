@@ -66,8 +66,8 @@ def setupAdapters(status):
                                            adapter_type)
     adapter_class = adapter_types[settings['type']]
 
-    # pylint: disable=W0612
-    adapter = adapter_class(status, adapter_url, name, settings)
+    # Instantiate the adapter. It'll setup whatever it needs persisted.
+    adapter_class(status, adapter_url, name, settings)
 
 def setup():
   log_handler, log_buffer = setupLogging()
@@ -82,8 +82,8 @@ def setup():
   # Setup the normal adapters.
   setupAdapters(status)
 
-  # pylint: disable=W0612
-  engine = monitor.rules_engine.RulesEngine(status)
+  # Instantiating the engine sets up the deferreds needed to keep it running.
+  monitor.rules_engine.RulesEngine(status)
 
   monitor.up.setup(status)
 

@@ -8,6 +8,9 @@ setup:
 run:
 	python server.py 2>&1
 
+flake:
+	pyflakes *.py monitor
+
 lint:
 	pylint --rcfile pylintrc server.py monitor
 
