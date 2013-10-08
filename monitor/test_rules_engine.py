@@ -60,7 +60,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
       finally:
         # Remove mock patches, and shutdown rules engine.
         mock.patch.stopall()
-
         engine.stop().chainDeferred(test_finished)
 
     # Delay long enough for all processing callbacks to finish.

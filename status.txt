@@ -184,6 +184,11 @@ status := <server>, <adapter>+
   "dest": "status://status/location/"
 },
 {
+  // dest is created as 1, or incremented by one.
+  "action": "increment",
+  "dest": "status://status/location/"
+},
+{
   "action": "wol",
   "mac": "11:22:33:44:55:66"
 },

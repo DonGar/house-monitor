@@ -60,6 +60,12 @@ def _handle_set_action(status, action):
   raise InvalidAction(action)
 
 
+def _handle_increment_action(status, action):
+  logging.debug('Action: Increment %s', action['dest'])
+  status.set(action['dest'], status.get(action['dest'], 0) + 1)
+  return
+
+
 def _handle_wol_action(_status, action):
   logging.debug('Action: WOL %s', action['mac'])
   monitor.util.wake_on_lan.wake_on_lan(action['mac'])
@@ -71,6 +77,7 @@ def _handle_ping_action(status, action):
 
   result = monitor.util.ping.ping(action['hostname'])
   status.set(action['dest'], result)
+
 
 # pylint: disable=R0914
 def _handle_email_action(status, action):
@@ -176,6 +183,7 @@ def handle_action(status, action):
         'delayed': _handle_delayed_action,
         'fetch_url': _handle_fetch_action,
         'set': _handle_set_action,
+        'increment': _handle_increment_action,
         'wol': _handle_wol_action,
         'ping': _handle_ping_action,
         'email': _handle_email_action,

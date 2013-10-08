@@ -30,57 +30,53 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
   def __init__(self, *args, **kwargs):
     super(TestActionHandlers, self).__init__(*args, **kwargs)
 
-    self.status = self._create_status(STATUS_VALUES)
-
   def test_handle_action_delayed(self):
     """Verify handle_action with a delayed action."""
+    status = self._create_status(STATUS_VALUES)
 
     action_delayed = {
       'action': 'delayed',
       'seconds': 1,
       'delayed_action': {
-          'action': 'wol',
-          'mac': '11:22:33:44:55:66',
+          'action': 'increment',
+          'dest': 'status://target',
         }
     }
 
-    patch = mock.patch('monitor.util.wake_on_lan.wake_on_lan',
-                       autospec=True)
-    mocked = patch.start()
-
     def verify_delayed_action(_):
-      mocked.assert_called_once_with('11:22:33:44:55:66')
-      patch.stop()
+      self.assertEqual(status.get('status://target'), 1)
 
-    d = monitor.actions.handle_action(self.status, action_delayed)
+    d = monitor.actions.handle_action(status, action_delayed)
     d.addCallback(verify_delayed_action)
     return d
 
   def test_handle_action_url(self):
     """Verify handle_action with status and http URL strings."""
+    status = self._create_status(STATUS_VALUES)
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, 'http://some/url')
+      monitor.actions.handle_action(status, 'http://some/url')
       mocked.assert_called_once_with('http://some/url')
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, 'https://some/url')
+      monitor.actions.handle_action(status, 'https://some/url')
       mocked.assert_called_with('https://some/url')
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, 'status://url')
+      monitor.actions.handle_action(status, 'status://url')
       mocked.assert_called_with('http://some/url')
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, 'status://reference_indirect')
+      monitor.actions.handle_action(status, 'status://reference_indirect')
       mocked.assert_called_with('http://some/url')
 
   def test_handle_action_list(self):
     """Verify handle_action with lists of actions.."""
+    status = self._create_status(STATUS_VALUES)
 
     action_list = ['http://some/url', 'http://some/other/url']
     expected_actions = [mock.call('http://some/url'),
@@ -88,7 +84,7 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_list)
+      monitor.actions.handle_action(status, action_list)
       mocked.assert_has_calls(expected_actions)
 
     nest_action_list = ['http://some/url',
@@ -99,12 +95,13 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, nest_action_list)
+      monitor.actions.handle_action(status, nest_action_list)
       mocked.assert_has_calls(nest_expected_actions)
 
 
   def test_handle_action_fetch(self):
     """Verify handle_action with JSON fetch action nodes."""
+    status = self._create_status(STATUS_VALUES)
 
     action_fetch = {
       'action': 'fetch_url',
@@ -113,7 +110,7 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     with mock.patch('monitor.util.action.get_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_fetch)
+      monitor.actions.handle_action(status, action_fetch)
       mocked.assert_called_once_with('http://some/url')
 
     action_fetch_download = {
@@ -124,12 +121,13 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     with mock.patch('monitor.util.action.download_page_wrapper',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_fetch_download)
+      monitor.actions.handle_action(status, action_fetch_download)
       mocked.assert_called_once_with('http://some/url',
                                      '/downloads/my_download_name')
 
   def test_handle_action_set(self):
     """Verify handle_action with JSON set action nodes."""
+    status = self._create_status(STATUS_VALUES)
 
     action_set_value = {
       'action': 'set',
@@ -137,8 +135,8 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
       'dest': 'status://target',
     }
 
-    monitor.actions.handle_action(self.status, action_set_value)
-    self.assertEqual(self.status.get('status://target'), True)
+    monitor.actions.handle_action(status, action_set_value)
+    self.assertEqual(status.get('status://target'), True)
 
     action_set_complex = {
       'action': 'set',
@@ -146,8 +144,8 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
       'dest': 'status://target',
     }
 
-    monitor.actions.handle_action(self.status, action_set_complex)
-    self.assertEqual(self.status.get('status://target'), { 'foo': 'bar'})
+    monitor.actions.handle_action(status, action_set_complex)
+    self.assertEqual(status.get('status://target'), { 'foo': 'bar'})
 
     action_set_src = {
       'action': 'set',
@@ -155,11 +153,28 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
       'dest': 'status://target',
     }
 
-    monitor.actions.handle_action(self.status, action_set_src)
-    self.assertEqual(self.status.get('status://target'), 'status_value')
+    monitor.actions.handle_action(status, action_set_src)
+    self.assertEqual(status.get('status://target'), 'status_value')
+
+  def test_handle_action_increment(self):
+    """Verify handle_action with JSON set action nodes."""
+    status = self._create_status(STATUS_VALUES)
+
+    action_set_value = {
+      'action': 'increment',
+      'dest': 'status://target',
+    }
+
+    monitor.actions.handle_action(status, action_set_value)
+    self.assertEqual(status.get('status://target'), 1)
+
+    monitor.actions.handle_action(status, action_set_value)
+    self.assertEqual(status.get('status://target'), 2)
+
 
   def test_handle_action_wol(self):
     """Verify handle_action with JSON wol action nodes."""
+    status = self._create_status(STATUS_VALUES)
 
     action_wol = {
       'action': 'wol',
@@ -168,11 +183,12 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     with mock.patch('monitor.util.wake_on_lan.wake_on_lan',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_wol)
+      monitor.actions.handle_action(status, action_wol)
       mocked.assert_called_once_with('11:22:33:44:55:66')
 
   def test_handle_action_ping(self):
     """Verify handle_action with JSON ping action nodes."""
+    status = self._create_status(STATUS_VALUES)
 
     action_ping = {
       'action': 'ping',
@@ -183,26 +199,29 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     with mock.patch('monitor.util.ping.ping',
                     return_value='ping_result',
                     autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_ping)
+      monitor.actions.handle_action(status, action_ping)
       mocked.assert_called_once_with('foo')
-      self.assertEqual(self.status.get('status://target'), 'ping_result')
+      self.assertEqual(status.get('status://target'), 'ping_result')
 
   def test_handle_action_email_default(self):
     """Verify handle_action with JSON email action nodes."""
+    status = self._create_status(STATUS_VALUES)
 
     action_email = {
       'action': 'email'
     }
 
     with mock.patch('monitor.util.sendemail.email', autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_email)
-      mocked.assert_called_once_with(self.status,
+      monitor.actions.handle_action(status, action_email)
+      mocked.assert_called_once_with(status,
                                      'default@address.com',
                                      '',
                                      '',
                                      [])
 
   def test_handle_action_email_explicit(self):
+    """Verify handle_action with fully specified email values."""
+    status = self._create_status(STATUS_VALUES)
     action_email = {
       'action': 'email',
 
@@ -212,8 +231,8 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     }
 
     with mock.patch('monitor.util.sendemail.email', autospec=True) as mocked:
-      monitor.actions.handle_action(self.status, action_email)
-      mocked.assert_called_once_with(self.status,
+      monitor.actions.handle_action(status, action_email)
+      mocked.assert_called_once_with(status,
                                      'to@address.com',
                                      'subject line',
                                      'message body',
@@ -221,6 +240,7 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
   def test_handle_action_email_attachments(self):
     """Verify handle_action with JSON email action nodes."""
+    status = self._create_status(STATUS_VALUES)
 
     url_preserve = 'http://resource/url/preserve'
     file_preserve = '/downloads/foo_preserve.jpg'
@@ -271,7 +291,7 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
                           side_effect=downlad_page_side_effect) as download:
 
             # Run the initial handling.
-            monitor.actions.handle_action(self.status, action_email)
+            monitor.actions.handle_action(status, action_email)
 
             # Check that the downloads were setup as expected.
             download.assert_has_calls([mock.call(url_preserve, file_preserve),
@@ -284,7 +304,7 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
               d.callback(None)
 
           # Ensure we 'sent' the mail.
-          email.assert_called_once_with(self.status,
+          email.assert_called_once_with(status,
                                         'to@address.com',
                                         'subject line',
                                         'message body',
