@@ -20,11 +20,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def _setup_status_engine(self, rules, utc_nows=()):
 
-    # This patch is removed by _test_actions_fired.
-    utc_patch = mock.patch('monitor.rules_engine._utc_now', autospec=True)
-    mocked_utc = utc_patch.start()
-    mocked_utc.side_effect = iter(utc_nows)
-
     status = self._create_status({
           'server': {
             'latitude': '37.3861',
@@ -40,9 +35,15 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
           }
         })
 
-    engine = monitor.rules_engine.RulesEngine(status)
+    # mutable version of times list we received.
+    nows = list(utc_nows)
 
-    return status, engine
+    # An identical engine, except it sequentially uses our defined times.
+    class TestEngine(monitor.rules_engine.RulesEngine):
+      def utc_now(self):
+        return nows.pop(0)
+
+    return status, TestEngine(status)
 
   def _test_actions_fired(self, engine, expected_actions, delay=0.01):
     action_patch = mock.patch('monitor.actions.handle_action', autospec=True)
@@ -69,7 +70,10 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_rules_helper(self):
     """Can our test_helper base class start and stop?"""
-    h = monitor.rules_engine._RuleHelper(self._create_status(),
+
+    # Uses 'None' for the engine. A bit brittle.
+    h = monitor.rules_engine._RuleHelper(None,
+                                         self._create_status(),
                                          'helper_name',
                                          {'behavior': 'test'})
     h.start()

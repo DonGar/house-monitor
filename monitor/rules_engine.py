@@ -40,7 +40,7 @@ class RulesEngine(object):
       else:
         raise UnknownRuleBehavior(str(rule))
 
-      self._helpers.append(helper_type(self.status, name, rule))
+      self._helpers.append(helper_type(self, self.status, name, rule))
 
     for helper in self._helpers:
       helper.start()
@@ -54,9 +54,14 @@ class RulesEngine(object):
     return defer.DeferredList([d for d in deferred_list if d],
                               consumeErrors=True)
 
+  def utc_now(self):
+    """This method exists for unittests to override to control current time."""
+    return datetime.datetime.utcnow()
+
 
 class _RuleHelper(object):
-  def __init__(self, status, name, rule):
+  def __init__(self, engine, status, name, rule):
+    self._engine = engine
     self._status = status
     self._name = name
     self._rule = rule
@@ -102,8 +107,8 @@ class _RuleHelper(object):
 
 
 class _DailyHelper(_RuleHelper):
-  def __init__(self, status, name, rule):
-    super(_DailyHelper, self).__init__(status, name, rule)
+  def __init__(self, engine, status, name, rule):
+    super(_DailyHelper, self).__init__(engine, status, name, rule)
 
     latitude = float(self._status.get('status://server/latitude'))
     longitude = float(self._status.get('status://server/longitude'))
@@ -123,15 +128,15 @@ class _DailyHelper(_RuleHelper):
       self._find_next_fire_time = repeat.daily_helper(time_of_day)
 
   def next_deferred(self):
-    utc_now = _utc_now()
+    utc_now = self._engine.utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
     return task.deferLater(reactor, seconds_delay, lambda : None)
 
 
 class _IntervalHelper(_RuleHelper):
-  def __init__(self, status, name, rule):
-    super(_IntervalHelper, self).__init__(status, name, rule)
+  def __init__(self, engine, status, name, rule):
+    super(_IntervalHelper, self).__init__(engine, status, name, rule)
 
     # The _find_next_fire_time is a method that returns the datetime in which to
     # next fire if passed utcnow as a datetime. The different implementations of
@@ -145,7 +150,7 @@ class _IntervalHelper(_RuleHelper):
     self._find_next_fire_time = repeat.interval_helper(interval)
 
   def next_deferred(self):
-    utc_now = _utc_now()
+    utc_now = self._engine.utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
     return task.deferLater(reactor, seconds_delay, lambda : None)
@@ -168,8 +173,3 @@ class _WatchHelper(_RuleHelper):
       monitor.actions.handle_action(self._status, self._rule['action'])
 
     return value
-
-
-def _utc_now():
-  """This method exists for unittests to patch to set current time."""
-  return datetime.datetime.utcnow()
