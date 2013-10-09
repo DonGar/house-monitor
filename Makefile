@@ -6,7 +6,7 @@ setup:
 	./setup_virtualenv
 
 run:
-	python server.py 2>&1
+	./run_server 2>&1
 
 flake:
 	pyflakes *.py monitor

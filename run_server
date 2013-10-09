@@ -2,5 +2,9 @@
 
 cd `dirname $0`
 
+if [ "$1" == "-setup" ]; then
+    ./setup_virtualenv
+fi
+
 source bin/activate
-python ./server.py 2>&1
+exec python ./server.py 2>&1

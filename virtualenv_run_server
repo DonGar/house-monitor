@@ -1,4 +1,0 @@
-#!/bin/bash
-
-./setup_virtualenv
-./run_server
