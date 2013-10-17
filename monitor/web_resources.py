@@ -5,6 +5,7 @@ import logging
 import os
 import time
 
+from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.web import server
 from twisted.web.resource import Resource
@@ -185,13 +186,19 @@ class Status(Resource):
       request.finish()
       return value
 
-    notification = self.status.deferred(revision, status_url)
-    notification.addCallback(_send_update)
+    def cancel_ok(failure):
+      failure.trap(defer.CancelledError)
 
-    # If we get cut off while waiting to respond, it's pretty normal. Don't
-    # error out.
+    # Setup deferreds to notify us if the connection is closed, or if the
+    # status we are watching is updated.
     finish_deferred = request.notifyFinish()
+    notification = self.status.deferred(revision, status_url)
+
+    # If the connection closes, cancel the status notification.
     finish_deferred.addErrback(lambda _err: notification.cancel())
+
+    # If we get a status notification, tell our web client, and accept cancels.
+    notification.addCallbacks(_send_update, cancel_ok)
 
     return server.NOT_DONE_YET
 

@@ -5,7 +5,6 @@ import logging
 import os
 
 from twisted.internet import defer
-from twisted.internet import reactor
 
 PREFIX = 'status://'
 
@@ -131,19 +130,12 @@ class Status(object):
   def _validate_url(self, url):
     assert(url.startswith(PREFIX))
 
-  def _notify_handler(self):
+  def _notify(self):
     self._pending_notify = None
     for deferred in self._notifications[:]:
       if deferred.changed():
         self._notifications.remove(deferred)
         deferred.callback(deferred.value())
-
-  def _notify(self):
-    if self._notifications:
-      # Notify clients of status changes in a new event loop iteration. This
-      # helps prevent problems with chained updates.
-      if not self._pending_notify:
-        self._pending_notify = reactor.callLater(0, self._notify_handler)
 
   class _StatusDeferred(defer.Deferred):
     """Helper class for watching part of the status to see if it was updated.
@@ -152,7 +144,6 @@ class Status(object):
     out if it's time for it to call back or not, and what value to send to
     the callback.
     """
-
     def __init__(self, status, url, force_update=False):
       defer.Deferred.__init__(self)
       self._status = status
@@ -166,7 +157,7 @@ class Status(object):
 
     def value(self):
       return {
-               'revision': self._status.revision(),
                'url': self._url,
                'status': self._status.get(self._url),
+               'revision': self._status.revision(),
              }
