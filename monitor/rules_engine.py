@@ -79,7 +79,7 @@ class _RuleHelper(object):
       def cancel_ok(failure):
         failure.trap(defer.CancelledError)
 
-      self._deferred = self.next_deferred()
+      self._deferred = self.next_deferred(value)
       self._deferred.addCallback(restart_handler)
       self._deferred.addCallback(self.fire)
       self._deferred.addErrback(cancel_ok)
@@ -97,7 +97,7 @@ class _RuleHelper(object):
       self._deferred = None
       return d
 
-  def next_deferred(self):
+  def next_deferred(self, _value):
     return defer.Deferred()
 
   def fire(self, value):
@@ -127,7 +127,7 @@ class _DailyHelper(_RuleHelper):
       time_of_day = datetime.time(hours, minutes, seconds)
       self._find_next_fire_time = repeat.daily_helper(time_of_day)
 
-  def next_deferred(self):
+  def next_deferred(self, _value):
     utc_now = self._engine.utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
@@ -149,7 +149,7 @@ class _IntervalHelper(_RuleHelper):
                                   seconds=seconds)
     self._find_next_fire_time = repeat.interval_helper(interval)
 
-  def next_deferred(self):
+  def next_deferred(self, _value):
     utc_now = self._engine.utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
@@ -158,8 +158,9 @@ class _IntervalHelper(_RuleHelper):
 
 class _WatchHelper(_RuleHelper):
 
-  def next_deferred(self):
-    return self._status.deferred(url=self._rule['value'])
+  def next_deferred(self, value):
+    revision = value['revision'] if value else None
+    return self._status.deferred(url=self._rule['value'], revision=revision)
 
   def fire(self, value):
     # If a trigger exists in the rule, it must match to fire the rule.

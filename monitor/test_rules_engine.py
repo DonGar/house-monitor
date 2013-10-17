@@ -139,11 +139,7 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     d = self._test_actions_fired(engine, expected_actions)
 
     status.set('status://values/one', 2)
-
-    # If we just set the status a second time, the two changes would be
-    # collapsed into a single notify. By delaying the second 'set', we
-    # ensure the rules engine is notified twice.
-    task.deferLater(reactor, 0, status.set, 'status://values/one', 3)
+    status.set('status://values/one', 3)
 
     return d
 
