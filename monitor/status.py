@@ -106,15 +106,16 @@ class Status(object):
        Otherwise, revision is ignored.
     """
     self._validate_url(url)
-    force_update = revision is not None and revision != self.revision()
+    deferred = self._Deferred(self, url)
 
-    d = self._StatusDeferred(self, url, force_update)
-    self._notifications.append(d)
+    if revision is not None and revision != self.revision():
+      # Send event right away.
+      deferred.callback(deferred.value())
+    else:
+	  # Setup for later notification.
+      self._notifications.append(deferred)
 
-    if force_update:
-      self._notify()
-
-    return d
+    return deferred
 
   def _parse_url(self, url):
     """status://foo/bar -> [foo, bar]"""
@@ -137,23 +138,22 @@ class Status(object):
         self._notifications.remove(deferred)
         deferred.callback(deferred.value())
 
-  class _StatusDeferred(defer.Deferred):
+  class _Deferred(defer.Deferred):
     """Helper class for watching part of the status to see if it was updated.
 
     This is a deferred with helpers (for use by Status only) to help figure
     out if it's time for it to call back or not, and what value to send to
     the callback.
     """
-    def __init__(self, status, url, force_update=False):
+    def __init__(self, status, url):
       defer.Deferred.__init__(self)
       self._status = status
       self._url = url
-      self._force_update = force_update
 
-      self._value = status.get(url)
+      self._value = self._status.get(self._url)
 
     def changed(self):
-      return self._force_update or self._status.get(self._url) != self._value
+      return self._value != self._status.get(self._url)
 
     def value(self):
       return {

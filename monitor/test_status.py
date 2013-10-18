@@ -8,53 +8,6 @@ import monitor.util.test_base
 # pylint: disable=W0212
 
 
-class TestStatusDeferred(monitor.util.test_base.TestBase):
-
-  def test_status_deferred(self):
-    status = self._create_status()
-
-    d_no_force = monitor.status.Status._StatusDeferred(
-        status,
-        url='status://dict/sub1',
-        force_update=False)
-    d_force = monitor.status.Status._StatusDeferred(
-        status,
-        url='status://dict/sub1',
-        force_update=True)
-
-    # Test when status has not been updated at all.
-    expected_value = {'revision': 1, 'url': 'status://dict/sub1', 'status': 3}
-
-    self.assertFalse(d_no_force.changed())
-    self.assertEqual(d_no_force.value(), expected_value)
-    self.assertTrue(d_force.changed())
-    self.assertEqual(d_force.value(), expected_value)
-
-    # Test when status has an unreleated change.
-    status.set('status://int', 12)
-    expected_value = {'revision': 2, 'url': 'status://dict/sub1', 'status': 3}
-    self.assertFalse(d_no_force.changed())
-    self.assertEqual(d_no_force.value(), expected_value)
-    self.assertTrue(d_force.changed())
-    self.assertEqual(d_force.value(), expected_value)
-
-    # Test when status has a releated noop change.
-    status.set('status://dict/sub1', 3)
-    expected_value = {'revision': 2, 'url': 'status://dict/sub1', 'status': 3}
-    self.assertFalse(d_no_force.changed())
-    self.assertEqual(d_no_force.value(), expected_value)
-    self.assertTrue(d_force.changed())
-    self.assertEqual(d_force.value(), expected_value)
-
-    # Test when status has a releated change.
-    status.set('status://dict/sub1', 4)
-    expected_value = {'revision': 3, 'url': 'status://dict/sub1', 'status': 4}
-    self.assertTrue(d_no_force.changed())
-    self.assertEqual(d_no_force.value(), expected_value)
-    self.assertTrue(d_force.changed())
-    self.assertEqual(d_force.value(), expected_value)
-
-
 class TestStatus(monitor.util.test_base.TestBase):
 
   def test_creation(self):
@@ -219,49 +172,77 @@ class TestStatus(monitor.util.test_base.TestBase):
                      {'nest2': {'nest3': 'foo' }})
     self.assertEqual(status.revision(), 5)
 
+class TestStatusDeferred(monitor.util.test_base.TestBase):
 
-  def _expected_result(self, revision=1, url='status://', value=None):
-    return { 'revision': revision,
-             'url': url,
-             'status': value }
 
-  def test_notification_mismatch_revision_no_url(self):
+  def test_deferred_class(self):
+    status = self._create_status()
+
+    deferred = monitor.status.Status._Deferred(
+        status,
+        url='status://dict/sub1')
+
+    # Test when status has not been updated at all.
+    self.assertFalse(deferred.changed())
+    self.assertEqual(deferred.value(),
+                     {'revision': 1, 'url': 'status://dict/sub1', 'status': 3})
+
+    # Test when status has an unreleated change.
+    status.set('status://int', 12)
+    self.assertFalse(deferred.changed())
+    self.assertEqual(deferred.value(),
+                     {'revision': 2, 'url': 'status://dict/sub1', 'status': 3})
+
+    # Test when status has a releated noop change.
+    status.set('status://dict/sub1', 3)
+    self.assertFalse(deferred.changed())
+    self.assertEqual(deferred.value(),
+                     {'revision': 2, 'url': 'status://dict/sub1', 'status': 3})
+
+    # Test when status has a releated change.
+    status.set('status://dict/sub1', 4)
+    self.assertTrue(deferred.changed())
+    self.assertEqual(deferred.value(),
+                     {'revision': 3, 'url': 'status://dict/sub1', 'status': 4})
+
+  def test_mismatch_revision_no_url(self):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred(0)
     d.addCallback(self.assertEquals,
-                  self._expected_result(value={ 'int': 2 }))
+                  { 'revision': 1, 'url': 'status://', 'status':{ 'int': 2 } })
 
-  def test_notification_mismatch_revision_with_url(self):
+  def test_mismatch_revision_with_url(self):
     status = self._create_status({ 'int': 2 })
 
     url = 'status://int'
     d = status.deferred(0, url=url)
     d.addCallback(self.assertEquals,
-                  self._expected_result(url=url, value=2))
+                  { 'revision': 1, 'url': url, 'status': 2})
 
-  def test_notification_single_change_no_url(self):
+  def test_single_change_no_url(self):
     status = self._create_status({ 'int': 2 })
 
     # Test that the expected notification fires after we make a change.
+    url = 'status://int'
     d = status.deferred()
-    status.set('status://int', 3)
+    status.set(url, 3)
     d.addCallback(self.assertEquals,
-                  self._expected_result(revision=2, value={'int': 3}))
+                  { 'revision': 2, 'url': 'status://', 'status': {'int': 3} })
 
-  def test_notification_no_change(self):
+  def test_no_change(self):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred(revision=1)
     self.assertFalse(d.called)
 
-  def test_notification_default_revision(self):
+  def test_default_revision(self):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred()
     self.assertFalse(d.called)
 
-  def test_notification_noop_change(self):
+  def test_noop_change(self):
     status = self._create_status({ 'int': 2 })
 
     # Make a couple of changes rapidly, and ensure we only fire once.
@@ -269,7 +250,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     status.set('status://int', 2)
     self.assertFalse(d.called)
 
-  def test_notification_url(self):
+  def test_url(self):
     status = self._create_status()
 
     # Ask for a specialized notification.
@@ -277,9 +258,9 @@ class TestStatus(monitor.util.test_base.TestBase):
     d = status.deferred(revision=1, url=url)
     status.set(url, 3)
     d.addCallback(self.assertEquals,
-                  self._expected_result(revision=2, url=url, value=3))
+                  { 'revision': 2, 'url': url, 'status': 3 })
 
-  def test_notification_url_not_updated(self):
+  def test_url_not_updated(self):
     status = self._create_status({ 'foo': 1, 'bar': 2 })
 
     # Ask for a specialized notification.
@@ -287,7 +268,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     status.set('status://int', 3)
     self.assertFalse(d.called)
 
-  def test_notification_non_existent_url(self):
+  def test_non_existent_url(self):
     status = self._create_status()
 
     # Ask for a specialized notification.
@@ -295,7 +276,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     d = status.deferred(url=url)
     status.set(url, 3)
     d.addCallback(self.assertEquals,
-                  self._expected_result(revision=2, url=url, value=3))
+                  { 'revision': 2, 'url': url, 'status': 3 })
 
 
 if __name__ == '__main__':
