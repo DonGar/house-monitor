@@ -2,12 +2,17 @@
 
 import copy
 import logging
-import os
 
 from twisted.internet import defer
 
 PREFIX = 'status://'
 
+
+class BadUrl(Exception):
+  """Raised when a status url isn't valid."""
+
+class UnknownUrl(Exception):
+  """Raised when a status url isn't valid."""
 
 class RevisionMismatch(Exception):
   """Raised when an operation can't compelete because of mismatch revision."""
@@ -32,59 +37,29 @@ class Status(object):
     return self._revision
 
   def get(self, url='status://', default_result=None):
-    values = self._values
-    keys = self._parse_url(url)
-
     try:
-      for key in keys:
-        values = values[key]
-    except KeyError:
-      values = default_result
-
-    return copy.deepcopy(values)
+      keys = self._parse_url(url)
+      return copy.deepcopy(self._get_values_by_keys(keys))
+    except UnknownUrl:
+      return default_result
 
   def get_matching(self, url):
     """Accept urls with wild cards. Ie: status://*/button."""
+    result = []
 
+    for url in self._expand_wildcards(url):
+      result.append({ 'url': url,
+                      'status': self.get(url),
+                      'revision': self.revision()
+                    })
 
-    def _get_matching_recurse(url, values, keys):
-
-      # If there are no keys left, we are done looking up.
-      if len(keys) == 0:
-        return [{ 'url': url,
-                  'status': copy.deepcopy(values),
-                  'revision': self.revision()
-                }]
-
-      try:
-        key = keys[0]
-
-        # If the first key is a wild card, replace it with every possible value
-        # and add up tghe results.
-        if key == '*':
-          result = []
-          for match_key in values.keys():
-            result += _get_matching_recurse(url, values, [match_key] + keys[1:])
-          return result
-
-        # If we have keys left, and it's not a wild card, do normal expansion.
-        if key in values.keys():
-          url = os.path.join(url, key)
-          return _get_matching_recurse(url, values[key], keys[1:])
-
-      except AttributeError:
-        # This means values wasn't a dict. Can't find things in it.
-        pass
-
-      # Didn't find anything.
-      return []
-
-    return _get_matching_recurse(PREFIX, self._values, self._parse_url(url))
+    return result
 
   def set(self, url, update_value, revision=None):
 
     if revision is not None and revision != self._revision:
-      raise RevisionMismatch()
+      raise RevisionMismatch('%d received, %d current' %
+                             (revision, self._revision))
 
     values = self._values
     keys = self._parse_url(url)
@@ -126,6 +101,10 @@ class Status(object):
 
     return deferred
 
+  def _validate_url(self, url):
+    if not url.startswith(PREFIX):
+      raise BadUrl(url)
+
   def _parse_url(self, url):
     """status://foo/bar -> [foo, bar]"""
     self._validate_url(url)
@@ -137,8 +116,66 @@ class Status(object):
 
     return result
 
-  def _validate_url(self, url):
-    assert(url.startswith(PREFIX))
+  def _join_url(self, keys):
+    """Inverse of _parse_url."""
+    return PREFIX + '/'.join(keys)
+
+  def _get_values_by_keys(self, keys):
+    """Look up the raw values for a url.
+
+    Raises:
+      UnknownUrl if any key doesn't exist.
+    """
+    values = self._values
+
+    for key in keys:
+      try:
+        values = values[key]
+      except (KeyError, TypeError):
+        raise UnknownUrl()
+
+    return values
+
+  def _expand_wildcards(self, url):
+    urls = [url]
+    result = []
+
+    # Our work cycle is to move from URLs to result. When we expand a wild card,
+    # we added it back to URLs, incase there are more wild cards in it.
+    while urls:
+      keys = self._parse_url(urls.pop())
+      try:
+        index = keys.index('*')
+      except ValueError:
+        # There is no wildcard in the URL.
+        try:
+          self._get_values_by_keys(keys)
+        except UnknownUrl:
+          # URL doesn't exist, skip it.
+          continue
+
+        # We found a concrete URL that exists, it's a result.
+        result.append(self._join_url(keys))
+        continue
+
+      pre_wildcard_keys = keys[:index]
+      post_wildcard_keys = keys[index+1:]
+      try:
+        wildcard_node = self._get_values_by_keys(pre_wildcard_keys)
+      except UnknownUrl:
+        # partial URL doesn't exist, skip it.
+        continue
+
+      try:
+        for expanded_key in wildcard_node.keys():
+          urls.append(self._join_url(pre_wildcard_keys +
+                                     [expanded_key] +
+                                     post_wildcard_keys))
+      except AttributeError:
+        # The wildcard_node isn't a dictionary, can't expand it.
+        continue
+
+    return result
 
   def _notify(self):
     self._pending_notify = None

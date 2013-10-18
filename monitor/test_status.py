@@ -20,13 +20,21 @@ class TestStatus(monitor.util.test_base.TestBase):
     self.assertEqual(status._values, {})
 
   def test_get(self):
-    status = self._create_status()
+    contents = {
+          'int': 2,
+          'string': 'foo',
+          'list': [],
+          'dict': {'sub1': 3, 'sub2': 4},
+        }
 
-    self.assertEqual(status.get('status://'),
-                     {'dict': {'sub1': 3, 'sub2': 4}, 'int': 2, 'list': []})
+    status = self._create_status(contents)
+
+    self.assertEqual(status.get('status://'), contents)
     self.assertEqual(status.get('status://nonexistant'), None)
     self.assertEqual(status.get('status://nonexistant', 'default'), 'default')
     self.assertEqual(status.get('status://int'), 2)
+    self.assertEqual(status.get('status://string'), 'foo')
+    self.assertEqual(status.get('status://string/foo'), None)
     self.assertEqual(status.get('status://list'), [])
     self.assertEqual(status.get('status://dict'), {'sub1': 3, 'sub2': 4})
     self.assertEqual(status.get('status://dict/sub1'), 3)
@@ -37,16 +45,18 @@ class TestStatus(monitor.util.test_base.TestBase):
     self.assertEqual(status.get('status://list'), [])
 
   def test_get_matching(self):
-    value = {
+    contents = {
       'match1': { 'foo': 1 },
       'match2': { 'foo': 2 },
       'solo1': { 'bar': 3 },
       'deep1': { 'sub_deep1': { 'foo': 4 },
                  'sub_deep2': { 'foo': 5 } },
-      'deep2': { 'sub_deep1': { 'foo': 6 } }
+      'deep2': { 'sub_deep1': { 'foo': 6 } },
+      'string': 'foo',
+      'list': []
     }
 
-    status = self._create_status(value)
+    status = self._create_status(contents)
 
     def _validate_result(url, expected):
       self.assertEqual(sorted(status.get_matching(url)),
@@ -56,15 +66,24 @@ class TestStatus(monitor.util.test_base.TestBase):
                      [{
                         'revision': 1,
                         'url': 'status://',
-                        'status': {
-                          'match1': { 'foo': 1 },
-                          'match2': { 'foo': 2 },
-                          'solo1': { 'bar': 3 },
-                          'deep1': { 'sub_deep1': { 'foo': 4 },
-                                     'sub_deep2': { 'foo': 5 } },
-                          'deep2': { 'sub_deep1': { 'foo': 6 } }
-                        }
+                        'status': contents
                       }])
+    _validate_result('status://string',
+                     [{
+                        'revision': 1,
+                        'url': 'status://string',
+                        'status': 'foo'
+                      }])
+    _validate_result('status://string/*',
+                     [])
+    _validate_result('status://list',
+                     [{
+                        'revision': 1,
+                        'url': 'status://list',
+                        'status': []
+                      }])
+    _validate_result('status://list/*',
+                     [])
     _validate_result('status://match1',
                      [{
                         'revision': 1,
@@ -186,6 +205,77 @@ class TestStatus(monitor.util.test_base.TestBase):
                       status.set, 'status://int', 20, revision=1)
     self.assertEqual(status.get('status://int'), 10)
     self.assertEqual(status.revision(), 2)
+
+  def test_helpers(self):
+    status = self._create_status(
+        {
+          'int': 2,
+          'list': [],
+          'dict': {'sub1': 3, 'sub2': 4},
+          'nested': {'sub1': {'subsub1': 5, 'subsub2':6},
+                     'sub2': {'subsub1': 7, 'subsub2':8}},
+        })
+
+    # _validate_url
+    status._validate_url('status://')
+    status._validate_url('status://foo')
+    status._validate_url('status://foo/bar/widget')
+    status._validate_url('status://*')
+    status._validate_url('status://*/bar/widget/*')
+
+    # _parse_url
+    self.assertEqual(status._parse_url('status://'),
+                     [])
+    self.assertEqual(status._parse_url('status://foo'),
+                     ['foo'])
+    self.assertEqual(status._parse_url('status://foo/bar/widget'),
+                     ['foo', 'bar', 'widget'])
+    self.assertEqual(status._parse_url('status://*'),
+                     ['*'])
+    self.assertEqual(status._parse_url('status://*/bar/widget/*'),
+                     ['*', 'bar', 'widget', '*'])
+
+    # _join_url
+    self.assertEqual(status._join_url([]),
+                     'status://')
+    self.assertEqual(status._join_url(['foo']),
+                     'status://foo')
+    self.assertEqual(status._join_url(['foo', 'bar', 'widget']),
+                     'status://foo/bar/widget')
+    self.assertEqual(status._join_url(['*']),
+                     'status://*')
+    self.assertEqual(status._join_url(['*', 'bar', 'widget', '*']),
+                     'status://*/bar/widget/*')
+
+    # _expand_wildcards
+    self.assertEqual(status._expand_wildcards('status://'),
+                     ['status://'])
+    self.assertEqual(status._expand_wildcards('status://int'),
+                     ['status://int'])
+    self.assertEqual(status._expand_wildcards('status://not/present'),
+                     [])
+    self.assertEqual(status._expand_wildcards('status://not/present/*'),
+                     [])
+    self.assertEqual(status._expand_wildcards('status://int/*'),
+                     [])
+    self.assertEqual(sorted(status._expand_wildcards('status://*')),
+                     sorted(['status://int',
+                             'status://list',
+                             'status://dict',
+                             'status://nested']))
+    self.assertEqual(sorted(status._expand_wildcards('status://dict/*')),
+                     sorted(['status://dict/sub1',
+                             'status://dict/sub2']))
+    self.assertEqual(sorted(status._expand_wildcards('status://nested/*/*')),
+                     sorted(['status://nested/sub1/subsub1',
+                             'status://nested/sub1/subsub2',
+                             'status://nested/sub2/subsub1',
+                             'status://nested/sub2/subsub2']))
+    self.assertEqual(
+        sorted(status._expand_wildcards('status://nested/*/subsub1')),
+        sorted(['status://nested/sub1/subsub1',
+                'status://nested/sub2/subsub1']))
+
 
 
 class TestStatusDeferred(monitor.util.test_base.TestBase):

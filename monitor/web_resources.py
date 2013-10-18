@@ -224,8 +224,8 @@ class Status(Resource):
     try:
       self.status.set(status_url, value_parsed, revision=revision)
     except monitor.status.RevisionMismatch:
-        request.setResponseCode(412) # Precondition Failure
-        return 'Revision mismatch.'
+      request.setResponseCode(412) # Precondition Failure
+      return 'Revision mismatch.'
 
     request.setResponseCode(200)
     return 'Success'
