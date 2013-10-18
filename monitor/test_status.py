@@ -231,7 +231,6 @@ class TestStatus(monitor.util.test_base.TestBase):
     d = status.deferred(0)
     d.addCallback(self.assertEquals,
                   self._expected_result(value={ 'int': 2 }))
-    return d
 
   def test_notification_mismatch_revision_with_url(self):
     status = self._create_status({ 'int': 2 })
@@ -240,7 +239,6 @@ class TestStatus(monitor.util.test_base.TestBase):
     d = status.deferred(0, url=url)
     d.addCallback(self.assertEquals,
                   self._expected_result(url=url, value=2))
-    return d
 
   def test_notification_single_change_no_url(self):
     status = self._create_status({ 'int': 2 })
@@ -250,21 +248,18 @@ class TestStatus(monitor.util.test_base.TestBase):
     status.set('status://int', 3)
     d.addCallback(self.assertEquals,
                   self._expected_result(revision=2, value={'int': 3}))
-    return d
 
   def test_notification_no_change(self):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred(revision=1)
-    self._add_assert_timeout(d)
-    return d
+    self.assertFalse(d.called)
 
   def test_notification_default_revision(self):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred()
-    self._add_assert_timeout(d)
-    return d
+    self.assertFalse(d.called)
 
   def test_notification_noop_change(self):
     status = self._create_status({ 'int': 2 })
@@ -272,8 +267,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     # Make a couple of changes rapidly, and ensure we only fire once.
     d = status.deferred(revision=1)
     status.set('status://int', 2)
-    self._add_assert_timeout(d)
-    return d
+    self.assertFalse(d.called)
 
   def test_notification_url(self):
     status = self._create_status()
@@ -284,7 +278,6 @@ class TestStatus(monitor.util.test_base.TestBase):
     status.set(url, 3)
     d.addCallback(self.assertEquals,
                   self._expected_result(revision=2, url=url, value=3))
-    return d
 
   def test_notification_url_not_updated(self):
     status = self._create_status({ 'foo': 1, 'bar': 2 })
@@ -292,8 +285,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     # Ask for a specialized notification.
     d = status.deferred(revision=1, url='status://bar')
     status.set('status://int', 3)
-    self._add_assert_timeout(d)
-    return d
+    self.assertFalse(d.called)
 
   def test_notification_non_existent_url(self):
     status = self._create_status()
@@ -304,7 +296,6 @@ class TestStatus(monitor.util.test_base.TestBase):
     status.set(url, 3)
     d.addCallback(self.assertEquals,
                   self._expected_result(revision=2, url=url, value=3))
-    return d
 
 
 if __name__ == '__main__':
