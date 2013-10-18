@@ -8,6 +8,11 @@ from twisted.internet import defer
 
 PREFIX = 'status://'
 
+
+class RevisionMismatch(Exception):
+  """Raised when an operation can't compelete because of mismatch revision."""
+
+
 #
 # See 'status' variable at the end.
 #
@@ -76,7 +81,11 @@ class Status(object):
 
     return _get_matching_recurse(PREFIX, self._values, self._parse_url(url))
 
-  def set(self, url, update_value):
+  def set(self, url, update_value, revision=None):
+
+    if revision is not None and revision != self._revision:
+      raise RevisionMismatch()
+
     values = self._values
     keys = self._parse_url(url)
     final_key = keys.pop()

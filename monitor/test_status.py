@@ -172,6 +172,22 @@ class TestStatus(monitor.util.test_base.TestBase):
                      {'nest2': {'nest3': 'foo' }})
     self.assertEqual(status.revision(), 5)
 
+  def test_set_revision(self):
+    """Test Status.set() if revision is passed in."""
+    status = self._create_status()
+
+    # Set a new value, update with correct specified revision.
+    status.set('status://int', 10, revision=1)
+    self.assertEqual(status.revision(), 2)
+
+    # Set a new value, update with incorrect specified revision.
+    # Should raise exception, and modify nothing.
+    self.assertRaises(monitor.status.RevisionMismatch,
+                      status.set, 'status://int', 20, revision=1)
+    self.assertEqual(status.get('status://int'), 10)
+    self.assertEqual(status.revision(), 2)
+
+
 class TestStatusDeferred(monitor.util.test_base.TestBase):
 
 

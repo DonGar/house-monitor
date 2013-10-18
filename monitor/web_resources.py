@@ -212,22 +212,20 @@ class Status(Resource):
     logging.info('PUT args: %s', request.args)
     logging.info('PUT content: %s', request.content.getvalue())
 
-    # If a revision number was passed in, verify it matches our current
-    # revision number. It would be better to verify that the value in question
-    # hasn't been updated since the revision that was passed in, but that's
-    # not currently possible.
+    # Revision None means don't verify the revision.
+    revision = None
     if 'revision' in request.args:
       revision = int(request.args['revision'][0])
-
-      if revision != self.status.revision():
-        request.setResponseCode(412) # Precondition Failure
-        return 'Revision mismatch.'
 
     value_str = request.content.getvalue()
     value_parsed = json.loads(value_str)
 
     # Do the actual PUT.
-    self.status.set(status_url, value_parsed)
+    try:
+      self.status.set(status_url, value_parsed, revision=revision)
+    except monitor.status.RevisionMismatch:
+        request.setResponseCode(412) # Precondition Failure
+        return 'Revision mismatch.'
 
     request.setResponseCode(200)
     return 'Success'
