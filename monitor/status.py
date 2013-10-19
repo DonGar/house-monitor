@@ -31,7 +31,6 @@ class Status(object):
     self._revision = 1
     self._values = copy.deepcopy(value)
     self._notifications = []
-    self._pending_notify = None
 
   def revision(self):
     return self._revision
@@ -43,23 +42,38 @@ class Status(object):
     except UnknownUrl:
       return default_result
 
-  def get_matching(self, url):
-    """Accept urls with wild cards. Ie: status://*/button."""
-    result = []
+  def get_matching_urls(self, url):
+    """Accept urls with wild cards.
 
-    for url in self._expand_wildcards(url):
-      result.append({ 'url': url,
-                      'status': self.get(url),
-                      'revision': self.revision()
-                    })
+    Returns:
+      A list of URLs that exist in status and match the wild card pattern.
+    """
+    return self._expand_wildcards(url)
 
-    return result
+  def get_matching_values(self, url):
+    """Accept urls with wild cards.
+
+    Returns:
+      A copy of status will all content not matching the request URL stripped.
+    """
+    result = Status()
+
+    for u in self.get_matching_urls(url):
+      result.set(u, self.get(u))
+
+    return result.get()
 
   def set(self, url, update_value, revision=None):
 
     if revision is not None and revision != self._revision:
       raise RevisionMismatch('%d received, %d current' %
                              (revision, self._revision))
+
+    # The special case of setting the top level node.
+    if url == PREFIX:
+      self._values = copy.deepcopy(update_value)
+      self._notify()
+      return
 
     values = self._values
     keys = self._parse_url(url)
@@ -72,15 +86,12 @@ class Status(object):
       values = values[key]
 
     if final_key not in values or values[final_key] != update_value:
-      # Increment our revision, and
       self._revision += 1
-
-      # Set the new value
       values[final_key] = copy.deepcopy(update_value)
 
       # Notify listeners.
-      logging.info('Status revision %d: %s -> %s',
-                   self.revision(), update_value, url)
+      logging.debug('Status revision %d: %s -> %s',
+                    self.revision(), update_value, url)
       self._notify()
 
   def deferred(self, revision=None, url='status://'):
@@ -89,16 +100,8 @@ class Status(object):
        If an outdated revision is provided, we will call back right away.
        Otherwise, revision is ignored.
     """
-    self._validate_url(url)
     deferred = self._Deferred(self, url)
-
-    if revision is not None and revision != self.revision():
-      # Send event right away.
-      deferred.callback(deferred.value())
-    else:
-	  # Setup for later notification.
-      self._notifications.append(deferred)
-
+    self._save_deferred(deferred, revision)
     return deferred
 
   def _validate_url(self, url):
@@ -140,8 +143,13 @@ class Status(object):
     urls = [url]
     result = []
 
-    # Our work cycle is to move from URLs to result. When we expand a wild card,
-    # we added it back to URLs, incase there are more wild cards in it.
+    # For each url in urls, we look to see if it contains any wild cards.
+    # If not, we look to see if it exists in our values. If it does, add
+    # to results.
+    #
+    # If the url contains a wildcard, expand it, and add all discovered urls
+    # back to the urls list to start over. This expands any additional wild
+    # cards, and tests for existence of the fully expanded urls.
     while urls:
       keys = self._parse_url(urls.pop())
       try:
@@ -177,12 +185,24 @@ class Status(object):
 
     return result
 
+  def _save_deferred(self, deferred, revision):
+
+    def _remove_callback(value):
+      self._notifications.remove(deferred)
+      return value
+
+    deferred.addCallback(_remove_callback)
+    self._notifications.append(deferred)
+
+    if revision is not None and revision != self.revision():
+      # Send event right away.
+      deferred.issue_callback()
+
   def _notify(self):
-    self._pending_notify = None
-    for deferred in self._notifications[:]:
-      if deferred.changed():
-        self._notifications.remove(deferred)
-        deferred.callback(deferred.value())
+    # Look for deferreds that need to fire.
+    for d in self._notifications[:]:
+      if d.changed():
+        d.issue_callback()
 
   class _Deferred(defer.Deferred):
     """Helper class for watching part of the status to see if it was updated.
@@ -195,15 +215,10 @@ class Status(object):
       defer.Deferred.__init__(self)
       self._status = status
       self._url = url
-
-      self._value = self._status.get(self._url)
+      self._value = self._status.get_matching_values(self._url)
 
     def changed(self):
-      return self._value != self._status.get(self._url)
+      return self._value != self._status.get_matching_values(self._url)
 
-    def value(self):
-      return {
-               'url': self._url,
-               'status': self._status.get(self._url),
-               'revision': self._status.revision(),
-             }
+    def issue_callback(self):
+      self.callback(self._status.get_matching_urls(self._url))

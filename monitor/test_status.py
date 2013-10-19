@@ -58,98 +58,56 @@ class TestStatus(monitor.util.test_base.TestBase):
 
     status = self._create_status(contents)
 
-    def _validate_result(url, expected):
-      self.assertEqual(sorted(status.get_matching(url)),
-                       sorted(expected))
+    def _validate_result(url, expected_urls, expected_values):
+      self.assertEqual(sorted(status.get_matching_urls(url)),
+                       sorted(expected_urls))
+      self.assertEqual(status.get_matching_values(url),
+                       expected_values)
 
     _validate_result('status://',
-                     [{
-                        'revision': 1,
-                        'url': 'status://',
-                        'status': contents
-                      }])
+                     ['status://'],
+                     contents)
     _validate_result('status://string',
-                     [{
-                        'revision': 1,
-                        'url': 'status://string',
-                        'status': 'foo'
-                      }])
+                     ['status://string'],
+                     {'string': 'foo'})
     _validate_result('status://string/*',
-                     [])
+                     [],
+                     {})
     _validate_result('status://list',
-                     [{
-                        'revision': 1,
-                        'url': 'status://list',
-                        'status': []
-                      }])
+                     ['status://list'],
+                     {'list': []})
     _validate_result('status://list/*',
-                     [])
+                     [],
+                     {})
     _validate_result('status://match1',
-                     [{
-                        'revision': 1,
-                        'url': 'status://match1',
-                        'status': { 'foo': 1 }
-                      }])
+                     ['status://match1'],
+                     {'match1': {'foo': 1}})
     _validate_result('status://match1/foo',
-                     [{
-                        'revision': 1,
-                        'url': 'status://match1/foo',
-                        'status': 1
-                      }])
+                     ['status://match1/foo'],
+                     {'match1': {'foo': 1}})
     _validate_result('status://*/foo',
-                     sorted([{
-                        'revision': 1,
-                        'url': 'status://match1/foo',
-                        'status': 1
-                      },{
-                        'revision': 1,
-                        'url': 'status://match2/foo',
-                        'status': 2
-                      }]))
+                     ['status://match1/foo', 'status://match2/foo'],
+                     {'match1': {'foo': 1}, 'match2': {'foo': 2}})
     _validate_result('status://*/bar',
-                     [{
-                        'revision': 1,
-                        'url': 'status://solo1/bar',
-                        'status': 3
-                      }])
+                     ['status://solo1/bar'],
+                     {'solo1': {'bar': 3}})
     _validate_result('status://*/sub_deep1/foo',
-                     [{
-                        'revision': 1,
-                        'url': 'status://deep1/sub_deep1/foo',
-                        'status': 4
-                      },
-                      {
-                        'revision': 1,
-                        'url': 'status://deep2/sub_deep1/foo',
-                        'status': 6
-                      }])
+                     ['status://deep1/sub_deep1/foo',
+                      'status://deep2/sub_deep1/foo'],
+                     {'deep1': {'sub_deep1': {'foo': 4}},
+                      'deep2': {'sub_deep1': {'foo': 6}}})
     _validate_result('status://deep1/*/foo',
-                     [{
-                        'revision': 1,
-                        'url': 'status://deep1/sub_deep1/foo',
-                        'status': 4
-                      },
-                      {
-                        'revision': 1,
-                        'url': 'status://deep1/sub_deep2/foo',
-                        'status': 5
-                      }])
+                     ['status://deep1/sub_deep1/foo',
+                      'status://deep1/sub_deep2/foo'],
+                     {'deep1': {'sub_deep1': {'foo': 4},
+                                'sub_deep2': {'foo': 5}}})
     _validate_result('status://*/*/foo',
-                     [{
-                        'revision': 1,
-                        'url': 'status://deep1/sub_deep1/foo',
-                        'status': 4
-                      },
-                      {
-                        'revision': 1,
-                        'url': 'status://deep1/sub_deep2/foo',
-                        'status': 5
-                      },
-                      {
-                        'revision': 1,
-                        'url': 'status://deep2/sub_deep1/foo',
-                        'status': 6
-                      }])
+                     ['status://deep1/sub_deep1/foo',
+                      'status://deep1/sub_deep2/foo',
+                      'status://deep2/sub_deep1/foo'],
+                     {'deep1': {'sub_deep1': {'foo': 4},
+                                'sub_deep2': {'foo': 5}},
+                      'deep2': {'sub_deep1': {'foo': 6}}})
 
   def test_set(self):
     status = self._create_status()
@@ -277,54 +235,20 @@ class TestStatus(monitor.util.test_base.TestBase):
                 'status://nested/sub2/subsub1']))
 
 
-
 class TestStatusDeferred(monitor.util.test_base.TestBase):
-
-
-  def test_deferred_class(self):
-    status = self._create_status()
-
-    deferred = monitor.status.Status._Deferred(
-        status,
-        url='status://dict/sub1')
-
-    # Test when status has not been updated at all.
-    self.assertFalse(deferred.changed())
-    self.assertEqual(deferred.value(),
-                     {'revision': 1, 'url': 'status://dict/sub1', 'status': 3})
-
-    # Test when status has an unreleated change.
-    status.set('status://int', 12)
-    self.assertFalse(deferred.changed())
-    self.assertEqual(deferred.value(),
-                     {'revision': 2, 'url': 'status://dict/sub1', 'status': 3})
-
-    # Test when status has a releated noop change.
-    status.set('status://dict/sub1', 3)
-    self.assertFalse(deferred.changed())
-    self.assertEqual(deferred.value(),
-                     {'revision': 2, 'url': 'status://dict/sub1', 'status': 3})
-
-    # Test when status has a releated change.
-    status.set('status://dict/sub1', 4)
-    self.assertTrue(deferred.changed())
-    self.assertEqual(deferred.value(),
-                     {'revision': 3, 'url': 'status://dict/sub1', 'status': 4})
 
   def test_mismatch_revision_no_url(self):
     status = self._create_status({ 'int': 2 })
 
     d = status.deferred(0)
-    d.addCallback(self.assertEquals,
-                  { 'revision': 1, 'url': 'status://', 'status':{ 'int': 2 } })
+    d.addCallback(self.assertEquals, ['status://'])
 
   def test_mismatch_revision_with_url(self):
     status = self._create_status({ 'int': 2 })
 
     url = 'status://int'
     d = status.deferred(0, url=url)
-    d.addCallback(self.assertEquals,
-                  { 'revision': 1, 'url': url, 'status': 2})
+    d.addCallback(self.assertEquals, [url])
 
   def test_single_change_no_url(self):
     status = self._create_status({ 'int': 2 })
@@ -333,8 +257,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     url = 'status://int'
     d = status.deferred()
     status.set(url, 3)
-    d.addCallback(self.assertEquals,
-                  { 'revision': 2, 'url': 'status://', 'status': {'int': 3} })
+    d.addCallback(self.assertEquals, ['status://'])
 
   def test_no_change(self):
     status = self._create_status({ 'int': 2 })
@@ -363,8 +286,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     url = 'status://int'
     d = status.deferred(revision=1, url=url)
     status.set(url, 3)
-    d.addCallback(self.assertEquals,
-                  { 'revision': 2, 'url': url, 'status': 3 })
+    d.addCallback(self.assertEquals, [url])
 
   def test_url_not_updated(self):
     status = self._create_status({ 'foo': 1, 'bar': 2 })
@@ -381,8 +303,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     url = 'status://foo'
     d = status.deferred(url=url)
     status.set(url, 3)
-    d.addCallback(self.assertEquals,
-                  { 'revision': 2, 'url': url, 'status': 3 })
+    d.addCallback(self.assertEquals, [url])
 
 
 if __name__ == '__main__':

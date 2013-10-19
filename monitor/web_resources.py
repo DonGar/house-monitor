@@ -60,14 +60,12 @@ class Button(_ConfigActionHandler):
     # Convert to a generic action.
 
     button_search_url = os.path.join('status://*/button', component_id)
-    buttons = self.status.get_matching(button_search_url)
+    button_urls = self.status.get_matching_urls(button_search_url)
 
-    if not buttons:
+    if not button_urls:
       raise UnknownComponent(component_id)
 
-    for button in buttons:
-      url = button['url']
-
+    for url in button_urls:
       # Update when the button was pushed.
       pushed_url = os.path.join(url, 'pushed')
       self.status.set(pushed_url, int(time.time()))
@@ -88,14 +86,12 @@ class Host(_ConfigActionHandler):
 
 
     host_search_url = os.path.join('status://*/host', component_id)
-    hosts = self.status.get_matching(host_search_url)
+    host_urls = self.status.get_matching_urls(host_search_url)
 
-    if not hosts:
+    if not host_urls:
       raise UnknownComponent(component_id)
 
-    for host in hosts:
-      url = host['url']
-
+    for url in host_urls:
       action = request.args.get('action', [None])[0]
 
       if action:
@@ -177,12 +173,15 @@ class Status(Resource):
     status_url = os.path.join('status://', *request.postpath)
 
     def _send_update(value):
-      # To re-request this status value, re-request the same URL.
-      value['url'] = os.path.join(str(request.URLPath()), *request.postpath)
+      response_value =  {
+            'revision': self.status.revision(),
+            'status': self.status.get(status_url),
+            'url': os.path.join(str(request.URLPath()), *request.postpath)
+          }
 
       request.setResponseCode(200)
       request.setHeader('content-type', 'application/json')
-      request.write(json.dumps(value, sort_keys=True, indent=4))
+      request.write(json.dumps(response_value, sort_keys=True, indent=4))
       request.finish()
       return value
 
