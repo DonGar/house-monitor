@@ -14,6 +14,12 @@ twisted.internet.base.DelayedCall.debug = True
 
 class TestBase(twisted.trial.unittest.TestCase):
 
+  def __init__(self, *args, **kwargs):
+    super(TestBase, self).__init__(*args, **kwargs)
+
+    # Timeout any test case after 10 seconds.
+    self.timeout = 10
+
   def _create_status(self, values=None):
     if values is None:
       values = {
