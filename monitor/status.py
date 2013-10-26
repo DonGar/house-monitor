@@ -33,9 +33,15 @@ class Status(object):
     self._notifications = []
 
   def revision(self):
+    """Return the current revision of the system status.
+
+    This number starts 1 one at startup, and increases monotonically with
+    every change.
+    """
     return self._revision
 
   def get(self, url='status://', default_result=None):
+    """Fetch a subtree from the status."""
     try:
       keys = self._parse_url(url)
       return copy.deepcopy(self._get_values_by_keys(keys))
@@ -64,6 +70,10 @@ class Status(object):
     return result.get()
 
   def set(self, url, update_value, revision=None):
+    """Change the value of a status subtree.
+
+    Will create parent dictionaries as needed to satisfy the URL.
+    """
 
     if revision is not None and revision != self._revision:
       raise RevisionMismatch('%d received, %d current' %
@@ -99,6 +109,9 @@ class Status(object):
 
        If an outdated revision is provided, we will call back right away.
        Otherwise, revision is ignored.
+
+       The deferred value (when fired) will be a list of URLs that match
+       the URL passed in (wildcards accepted),
     """
     deferred = self._Deferred(self, url)
     self._save_deferred(deferred, revision)
@@ -140,6 +153,10 @@ class Status(object):
     return values
 
   def _expand_wildcards(self, url):
+    """Return a list of URLs which exist and match url with wildcards expanded.
+
+    May return an empty list if a single url is passed in which does not exist.
+    """
     urls = [url]
     result = []
 
@@ -199,7 +216,7 @@ class Status(object):
       deferred.issue_callback()
 
   def _notify(self):
-    # Look for deferreds that need to fire.
+    """Look for deferreds that need to fire."""
     for d in self._notifications[:]:
       if d.changed():
         d.issue_callback()
