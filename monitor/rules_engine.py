@@ -20,15 +20,25 @@ class RulesEngine(object):
   BEHAVIORS = ('interval', 'daily', 'watch')
 
   def __init__(self, status):
-    self.status = status
+    self._status = status
 
     self._helpers = []
 
-    # This creates a dictionary of rules indexed by behavior string.
-    #  { 'mirror': (<mirror rules>), 'interval': (<interval rules>), etc }
-    rules = status.get('status://config/rule', {})
+    self._update_rules()
 
-    for name, rule in rules.iteritems():
+  def _update_rules(self):
+
+    # Stop/clear old rules.
+    for helper in self._helpers:
+      helper.stop()
+    self._helpers = []
+
+    # Recreate all rules.
+    rule_urls = self._status.get_matching_urls('status://*/rule/*')
+
+    for url in rule_urls:
+      rule = self._status.get(url)
+
       assert rule['behavior'] in self.BEHAVIORS
 
       if rule['behavior'] == 'interval':
@@ -40,7 +50,7 @@ class RulesEngine(object):
       else:
         raise UnknownRuleBehavior(str(rule))
 
-      self._helpers.append(helper_type(self, self.status, name, rule))
+      self._helpers.append(helper_type(self, self._status, url, rule))
 
     for helper in self._helpers:
       helper.start()
@@ -49,8 +59,8 @@ class RulesEngine(object):
     deferred_list = [w.stop() for w in self._helpers]
 
     # Return a deferred which will fire when all rules have been shut down. This
-    # is required since our rules have outstanding deferreds whose cancel
-    # operations require another iteration of the reactor.
+    # is required since some of our rules have outstanding deferreds whose
+    # cancel operations require another iteration of the reactor.
     return defer.DeferredList([d for d in deferred_list if d],
                               consumeErrors=True)
 
@@ -60,17 +70,17 @@ class RulesEngine(object):
 
 
 class _RuleHelper(object):
-  def __init__(self, engine, status, name, rule):
+  def __init__(self, engine, status, url, rule):
     self._engine = engine
     self._status = status
-    self._name = name
+    self._url = url
     self._rule = rule
     self._deferred = None
 
-    logging.info('Init %s rule %s.', self._rule['behavior'], self._name)
+    logging.info('Init %s rule %s.', self._rule['behavior'], self._url)
 
   def start(self):
-    logging.info('Starting rule %s.', self._name)
+    logging.info('Starting rule %s.', self._url)
 
     def restart_handler(value):
       """This function is a callback handler that sets up the next deferred."""
@@ -90,7 +100,7 @@ class _RuleHelper(object):
     return self._deferred
 
   def stop(self):
-    logging.info('Stopping rule %s', self._name)
+    logging.info('Stopping rule %s', self._url)
     if self._deferred:
       d = self._deferred
       self._deferred.cancel()
@@ -101,14 +111,14 @@ class _RuleHelper(object):
     return defer.Deferred()
 
   def fire(self, value):
-    logging.info('Firing rule: %s', self._name)
+    logging.info('Firing rule: %s', self._url)
     monitor.actions.handle_action(self._status, self._rule['action'])
     return value
 
 
 class _DailyHelper(_RuleHelper):
-  def __init__(self, engine, status, name, rule):
-    super(_DailyHelper, self).__init__(engine, status, name, rule)
+  def __init__(self, engine, status, url, rule):
+    super(_DailyHelper, self).__init__(engine, status, url, rule)
 
     latitude = float(self._status.get('status://server/latitude'))
     longitude = float(self._status.get('status://server/longitude'))
@@ -135,8 +145,8 @@ class _DailyHelper(_RuleHelper):
 
 
 class _IntervalHelper(_RuleHelper):
-  def __init__(self, engine, status, name, rule):
-    super(_IntervalHelper, self).__init__(engine, status, name, rule)
+  def __init__(self, engine, status, url, rule):
+    super(_IntervalHelper, self).__init__(engine, status, url, rule)
 
     # The _find_next_fire_time is a method that returns the datetime in which to
     # next fire if passed utcnow as a datetime. The different implementations of
@@ -170,7 +180,7 @@ class _WatchHelper(_RuleHelper):
       fire_action = True
 
     if fire_action:
-      logging.info('Firing rule: %s', self._name)
+      logging.info('Firing rule: %s', self._url)
       monitor.actions.handle_action(self._status, self._rule['action'])
 
     return value
