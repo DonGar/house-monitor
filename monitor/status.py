@@ -204,21 +204,19 @@ class Status(object):
 
   def _save_deferred(self, deferred, revision):
 
-    def _remove_callback(value):
-      self._notifications.remove(deferred)
-      return value
-
-    deferred.addCallback(_remove_callback)
-    self._notifications.append(deferred)
-
     if revision is not None and revision != self.revision():
       # Send event right away.
       deferred.issue_callback()
+    else:
+      # Save it off, so we can send it later.
+      self._notifications.append(deferred)
+
 
   def _notify(self):
     """Look for deferreds that need to fire."""
     for d in self._notifications[:]:
       if d.changed():
+        self._notifications.remove(d)
         d.issue_callback()
 
   class _Deferred(defer.Deferred):

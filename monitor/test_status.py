@@ -242,6 +242,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
 
     d = status.deferred(0)
     d.addCallback(self.assertEquals, ['status://'])
+    self.assertTrue(d.called)
 
   def test_mismatch_revision_with_url(self):
     status = self._create_status({ 'int': 2 })
@@ -249,6 +250,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     url = 'status://int'
     d = status.deferred(0, url=url)
     d.addCallback(self.assertEquals, [url])
+    self.assertTrue(d.called)
 
   def test_single_change_no_url(self):
     status = self._create_status({ 'int': 2 })
@@ -258,6 +260,17 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     d = status.deferred()
     status.set(url, 3)
     d.addCallback(self.assertEquals, ['status://'])
+    self.assertTrue(d.called)
+
+  def test_double_change_no_url(self):
+    """Ensure the deferred does not fire on a non-meaningful change."""
+    status = self._create_status({ 'int': 2 })
+
+    d = status.deferred(revision=1)
+    status.set('status://int', 3)
+    status.set('status://int', 4)
+    d.addCallback(self.assertEquals, ['status://'])
+    self.assertTrue(d.called)
 
   def test_no_change(self):
     status = self._create_status({ 'int': 2 })
@@ -272,9 +285,9 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     self.assertFalse(d.called)
 
   def test_noop_change(self):
+    """Ensure the deferred does not fire on a non-meaningful change."""
     status = self._create_status({ 'int': 2 })
 
-    # Make a couple of changes rapidly, and ensure we only fire once.
     d = status.deferred(revision=1)
     status.set('status://int', 2)
     self.assertFalse(d.called)
@@ -287,6 +300,32 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     d = status.deferred(revision=1, url=url)
     status.set(url, 3)
     d.addCallback(self.assertEquals, [url])
+    self.assertTrue(d.called)
+
+  def test_url_double_updated(self):
+    status = self._create_status()
+
+    # Ask for a specialized notification.
+    url = 'status://int'
+    d = status.deferred(revision=1, url=url)
+    d.addCallback(self.assertEquals, [url])
+    status.set(url, 3)
+    status.set(url, 4)
+    self.assertTrue(d.called)
+
+  def test_url_nested_updates(self):
+    status = self._create_status()
+    url = 'status://int'
+
+    def callback(value, new_int):
+      status.set(url, new_int)
+      return value
+
+    d = status.deferred(url=url)
+    d.addCallback(callback, 4)
+    d.addCallback(callback, 5)
+    status.set(url, 3)
+    self.assertTrue(d.called)
 
   def test_url_not_updated(self):
     status = self._create_status({ 'foo': 1, 'bar': 2 })
@@ -304,6 +343,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     d = status.deferred(url=url)
     status.set(url, 3)
     d.addCallback(self.assertEquals, [url])
+    self.assertTrue(d.called)
 
 
 if __name__ == '__main__':
