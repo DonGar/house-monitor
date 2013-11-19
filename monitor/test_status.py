@@ -327,6 +327,28 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     status.set(url, 3)
     self.assertTrue(d.called)
 
+  def test_url_circular_deferreds(self):
+    status = self._create_status({ 'foo': 1, 'bar': 1 })
+
+    url_foo = 'status://foo'
+    url_bar = 'status://bar'
+
+    d_foo = status.deferred(url=url_foo)
+    d_bar = status.deferred(url=url_bar)
+
+    def callback(value, new_url, new_int):
+      status.set(new_url, new_int)
+      return value
+
+    d_foo.addCallback(callback, url_bar, 3)
+    d_bar.addCallback(callback, url_foo, 3)
+
+    status.set(url_foo, 2)
+    status.set(url_bar, 2)
+
+    self.assertTrue(d_foo.called)
+    self.assertTrue(d_bar.called)
+
   def test_url_not_updated(self):
     status = self._create_status({ 'foo': 1, 'bar': 2 })
 

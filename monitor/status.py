@@ -30,7 +30,7 @@ class Status(object):
 
     self._revision = 1
     self._values = copy.deepcopy(value)
-    self._notifications = []
+    self._notifications = set()
 
   def revision(self):
     """Return the current revision of the system status.
@@ -203,18 +203,23 @@ class Status(object):
     return result
 
   def _save_deferred(self, deferred, revision):
-
     if revision is not None and revision != self.revision():
       # Send event right away.
       deferred.issue_callback()
     else:
       # Save it off, so we can send it later.
-      self._notifications.append(deferred)
-
+      self._notifications.add(deferred)
 
   def _notify(self):
     """Look for deferreds that need to fire."""
-    for d in self._notifications[:]:
+    # Firing a deferred can modify (add or remove) our set of notifications
+    # underneath us.
+    for d in self._notifications.copy():
+      # If the deferred was handled in a nested call and removed...
+      #   skip it.
+      if d not in self._notifications:
+        continue
+
       if d.changed():
         self._notifications.remove(d)
         d.issue_callback()
