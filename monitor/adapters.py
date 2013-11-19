@@ -103,10 +103,10 @@ class IOGearAdapter(Adapter, protocol.Protocol):
     """Send serial data to the IOGear Arduino hardware."""
     return self.transport.writeSequence(data.encode('ascii'))
 
-  def _target_updated(self, status_update):
+  def _target_updated(self, _status_update):
     # If the target exists, send it to the serial port, then
     # clear the target.
-    target = status_update['status']
+    target = self.status.get(self.target_url)
     if target is not None:
       self.sendData(target)
       self.status.set(self.target_url, None)
