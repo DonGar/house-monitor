@@ -11,7 +11,9 @@ from twisted.internet import reactor
 from twisted.web.static import File
 from twisted.web.server import Site
 
-import monitor.adapters
+import monitor.adapter
+import monitor.iogear_adapter
+import monitor.snmp_adapter
 import monitor.rules_engine
 import monitor.status
 import monitor.up
@@ -53,9 +55,10 @@ def setupAdapters(status):
   adapters = status.get('status://server/adapters')
 
   adapter_types = {
-    'file': monitor.adapters.FileAdapter,
-    'iogear': monitor.adapters.IOGearAdapter,
-    'web': monitor.adapters.WebAdapter,
+    'file': monitor.adapter.FileAdapter,
+    'iogear': monitor.iogear_adapter.IOGearAdapter,
+    'snmp': monitor.snmp_adapter.SnmpAdapter,
+    'web': monitor.adapter.WebAdapter,
   }
 
   for name, settings in adapters.iteritems():
