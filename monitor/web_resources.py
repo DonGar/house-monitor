@@ -11,6 +11,7 @@ from twisted.web import server
 from twisted.web.resource import Resource
 
 import monitor.actions
+import monitor.adapter
 
 from monitor.util import wake_on_lan
 
@@ -206,7 +207,7 @@ class Status(Resource):
 
     status_url = os.path.join('status://', *request.postpath)
 
-    assert monitor.adapters.WebAdapter.web_updatable(status_url)
+    assert monitor.adapter.WebAdapter.web_updatable(status_url)
 
     logging.info('PUT args: %s', request.args)
     logging.info('PUT content: %s', request.content.getvalue())

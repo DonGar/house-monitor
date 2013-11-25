@@ -8,6 +8,7 @@ import mock
 from twisted.web.test.test_web import DummyRequest
 from twisted.python.urlpath import URLPath
 
+import monitor.adapter
 import monitor.util.test_base
 
 # pylint: disable=W0212
@@ -295,11 +296,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_post_simple(self):
-    monitor.adapters.WebAdapter._test_clear_state()
+    monitor.adapter.WebAdapter._test_clear_state()
     status = self._create_status({})
 
     # Create a web adapter for /web.
-    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+    monitor.adapter.WebAdapter(status, 'status://web', 'web', {})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -320,11 +321,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_post_nested(self):
-    monitor.adapters.WebAdapter._test_clear_state()
+    monitor.adapter.WebAdapter._test_clear_state()
     status = self._create_status({})
 
     # Create a web adapter for /web.
-    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+    monitor.adapter.WebAdapter(status, 'status://web', 'web', {})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -346,11 +347,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_post_invalid(self):
-    monitor.adapters.WebAdapter._test_clear_state()
+    monitor.adapter.WebAdapter._test_clear_state()
     status = self._create_status({})
 
     # Create a web adapter for /web.
-    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+    monitor.adapter.WebAdapter(status, 'status://web', 'web', {})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -364,11 +365,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
                       self._render, resource, request)
 
   def test_post_revision(self):
-    monitor.adapters.WebAdapter._test_clear_state()
+    monitor.adapter.WebAdapter._test_clear_state()
     status = self._create_status({})
 
     # Create a web adapter for /web.
-    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+    monitor.adapter.WebAdapter(status, 'status://web', 'web', {})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -390,11 +391,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_post_bad_revision(self):
-    monitor.adapters.WebAdapter._test_clear_state()
+    monitor.adapter.WebAdapter._test_clear_state()
     status = self._create_status({})
 
     # Create a web adapter for /web.
-    monitor.adapters.WebAdapter(status, 'status://web', 'web', {})
+    monitor.adapter.WebAdapter(status, 'status://web', 'web', {})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
