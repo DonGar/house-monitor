@@ -15,4 +15,4 @@ rm -rf local
 . bin/activate
 
 pip install --upgrade twisted pyserial pyephem pytz pysnmp pysnmp-mibs \
-                      pylint mock pyflakes
+                      pylint mock pyflakes requests

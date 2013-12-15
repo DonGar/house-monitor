@@ -1,13 +1,17 @@
 #!/usr/bin/python
 
+import datetime
 import logging
 import os
 
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 from twisted.internet import protocol
+from twisted.internet import threads
 
 import monitor.adapter
+
+from monitor.util import repeat
 
 # A lot of variables get defined inside setup, called from init.
 # pylint: disable=W0201
@@ -25,20 +29,23 @@ class SnmpAdapter(monitor.adapter.Adapter, protocol.Protocol):
 
     self.status.set(self.url, {})
 
+    # Start refreshing SNMP information every 10 seconds.
+    timing_helper = repeat.interval_helper(datetime.timedelta(seconds=15))
+    repeat.call_repeating(timing_helper, self.update_hosts)
+
+  def update_hosts(self):
     for host in self._hosts:
-      host_url = os.path.join(self.url, host)
-      self.status.set(host_url, {})
+      self.find_host_values(host)
 
-      self.host_update(host)
-
-  def host_update(self, host):
+  def find_host_values(self, host):
     host_url = os.path.join(self.url, host)
 
-    try:
-      self.status.set(host_url, self.read_host_values(host))
-    except SnmpError as e:
-      logging.error(e)
-      self.status.set(host_url, {})
+    def handle_error(e):
+      logging.error(e.getTraceback())
+      self.status.set(host_url, {'error': e.getErrorMessage()})
+
+    d = threads.deferToThread(self.read_host_values, host)
+    d.addCallbacks(lambda v: self.status.set(host_url, v), handle_error)
 
   def read_host_values(self, host):
     cmdGen = cmdgen.CommandGenerator()

@@ -3,7 +3,7 @@
 import mock
 import unittest
 
-import monitor.adapters
+import monitor.adapter
 import monitor.setup
 import monitor.status
 import monitor.util.test_base
@@ -21,11 +21,11 @@ class TestFileAdapter(monitor.util.test_base.TestBase):
 
     UNIQUE = object()
 
-    with mock.patch('monitor.adapters.FileAdapter.parse_config_file',
+    with mock.patch('monitor.adapter.FileAdapter.parse_config_file',
                     return_value=UNIQUE,
                     autospec=True) as m_parser:
       with mock.patch('monitor.status.Status.set', autospec=True) as m_set:
-        a = monitor.adapters.FileAdapter(status, url, name, json)
+        a = monitor.adapter.FileAdapter(status, url, name, json)
         m_parser.assert_called_once_with(a, 'foo.json')
         m_set.assert_called_once_with(status, 'status://foo', UNIQUE)
 
@@ -37,11 +37,11 @@ class TestFileAdapter(monitor.util.test_base.TestBase):
 
     UNIQUE = object()
 
-    with mock.patch('monitor.adapters.FileAdapter.parse_config_file',
+    with mock.patch('monitor.adapter.FileAdapter.parse_config_file',
                     return_value=UNIQUE,
                     autospec=True) as m_parser:
       with mock.patch('monitor.status.Status.set', autospec=True) as m_set:
-        a = monitor.adapters.FileAdapter(status, url, name, json)
+        a = monitor.adapter.FileAdapter(status, url, name, json)
         m_parser.assert_called_once_with(a, 'bar.json')
         m_set.assert_called_once_with(status, 'status://foo', UNIQUE)
 
@@ -52,26 +52,26 @@ class TestWebAdapter(monitor.util.test_base.TestBase):
     status = self._create_status({})
     json = { 'type': 'web' }
 
-    monitor.adapters.WebAdapter(status, 'status://foo', 'foo', json)
-    monitor.adapters.WebAdapter(status, 'status://bar', 'bar', json)
+    monitor.adapter.WebAdapter(status, 'status://foo', 'foo', json)
+    monitor.adapter.WebAdapter(status, 'status://bar', 'bar', json)
 
     self.assertEqual(status.get('status://foo'), {})
     self.assertEqual(status.get('status://bar'), {})
 
     # Web Updatable Paths
-    self.assertTrue(monitor.adapters.WebAdapter.web_updatable(
+    self.assertTrue(monitor.adapter.WebAdapter.web_updatable(
                     'status://foo'))
-    self.assertTrue(monitor.adapters.WebAdapter.web_updatable(
+    self.assertTrue(monitor.adapter.WebAdapter.web_updatable(
                     'status://bar'))
-    self.assertTrue(monitor.adapters.WebAdapter.web_updatable(
+    self.assertTrue(monitor.adapter.WebAdapter.web_updatable(
                     'status://foo/other'))
 
     # Not Web Updatable Paths
-    self.assertFalse(monitor.adapters.WebAdapter.web_updatable(
+    self.assertFalse(monitor.adapter.WebAdapter.web_updatable(
                      'status://other'))
-    self.assertFalse(monitor.adapters.WebAdapter.web_updatable(
+    self.assertFalse(monitor.adapter.WebAdapter.web_updatable(
                      'status://other/foo'))
-    self.assertFalse(monitor.adapters.WebAdapter.web_updatable(
+    self.assertFalse(monitor.adapter.WebAdapter.web_updatable(
                      'status://fo'))
 
 

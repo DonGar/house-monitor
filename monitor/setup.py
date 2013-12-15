@@ -14,6 +14,7 @@ from twisted.web.server import Site
 import monitor.adapter
 import monitor.iogear_adapter
 import monitor.snmp_adapter
+import monitor.sonos_adapter
 import monitor.rules_engine
 import monitor.status
 import monitor.up
@@ -58,6 +59,7 @@ def setupAdapters(status):
     'file': monitor.adapter.FileAdapter,
     'iogear': monitor.iogear_adapter.IOGearAdapter,
     'snmp': monitor.snmp_adapter.SnmpAdapter,
+    'sonos': monitor.sonos_adapter.SonosAdapter,
     'web': monitor.adapter.WebAdapter,
   }
 
