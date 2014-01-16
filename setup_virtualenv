@@ -1,18 +1,14 @@
-
 #!/bin/bash
 
 set -e
-
 cd `dirname $0`
 
 pip install --upgrade virtualenv
-
 virtualenv .
 
 # I don't know why this is created.
 rm -rf local
 
 . bin/activate
-
 pip install --upgrade twisted pyserial pyephem pytz pysnmp pysnmp-mibs \
                       pylint mock pyflakes requests
