@@ -335,7 +335,7 @@ class SoCo(object):
 
       return int(volume)
 
-  def partymode (self):
+  def partymode(self):
     """ Put all the speakers in the network in the same group, a.k.a Party Mode.
 
     This blog shows the initial research responsible for this:
@@ -361,7 +361,7 @@ class SoCo(object):
     rc = True
     # loop through all IP's in topology and make them join this master
     for ip in ips:
-      if not (ip == self.speaker_ip):
+      if ip != self.speaker_ip:
         Slave = SoCo(ip)
         ret = Slave.join(master_speaker_info["uid"])
         if not ret:

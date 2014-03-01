@@ -141,7 +141,7 @@ class _DailyHelper(_RuleHelper):
     utc_now = self._engine.utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
-    return task.deferLater(reactor, seconds_delay, lambda : None)
+    return task.deferLater(reactor, seconds_delay, lambda: None)
 
 
 class _IntervalHelper(_RuleHelper):
@@ -163,7 +163,7 @@ class _IntervalHelper(_RuleHelper):
     utc_now = self._engine.utc_now()
     time_to_fire = self._find_next_fire_time(utc_now)
     seconds_delay = repeat.datetime_to_seconds_delay(utc_now, time_to_fire)
-    return task.deferLater(reactor, seconds_delay, lambda : None)
+    return task.deferLater(reactor, seconds_delay, lambda: None)
 
 
 class _WatchHelper(_RuleHelper):
@@ -175,7 +175,7 @@ class _WatchHelper(_RuleHelper):
     # If a trigger exists in the rule, it must match to fire the rule.
     if 'trigger' in self._rule:
       possible_trigger_value = self._status.get(self._rule['value'])
-      fire_action =  possible_trigger_value == self._rule['trigger']
+      fire_action = possible_trigger_value == self._rule['trigger']
     else:
       fire_action = True
 

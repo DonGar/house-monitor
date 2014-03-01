@@ -62,8 +62,8 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
 
   def test_button_action(self):
     status = self._create_status({'adapter': {'button': {'foo':
-                                     { 'action': 'action_pushed',
-                                       'pushed': 4 }}}})
+                                     {'action': 'action_pushed',
+                                      'pushed': 4}}}})
 
     request = DummyRequest(['foo'])
     expected_actions = [mock.call(status, 'status://adapter/button/foo/action')]
@@ -94,7 +94,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_unknown_host(self):
     status = self._create_status(
-        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar' }}}}})
+        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar'}}}}})
 
     # Setup
     request_unknown = DummyRequest(['unknown'])
@@ -109,7 +109,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_host_no_action(self):
     status = self._create_status(
-        {'adapter': { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}}})
+        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar'}}}}})
 
     request = DummyRequest(['foo'])
     expected_actions = []
@@ -118,7 +118,7 @@ class TestWebResourcesHost(monitor.util.test_base.TestBase):
 
   def test_host_explicit_action(self):
     status = self._create_status(
-        {'adapter': { 'host': { 'foo': { 'actions': { 'bar': 'action_bar' }}}}})
+        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar'}}}}})
 
     request = DummyRequest(['foo'])
     request.addArg('action', 'bar')
@@ -140,7 +140,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
     # The request to make.
     request = DummyRequest(path)
-    request.URLPath = lambda : URLPath.fromString(url)
+    request.URLPath = lambda: URLPath.fromString(url)
 
     if revision is not None:
       request.addArg('revision', str(revision))
@@ -164,7 +164,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return request
 
   def test_status(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -188,7 +188,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_wrong_version(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -212,7 +212,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_current_version(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -226,7 +226,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_current_version_with_update(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -252,8 +252,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_path(self):
-    status = self._create_status({ 'int': 2,
-                                   'sub1': { 'sub2': {}}})
+    status = self._create_status({'int': 2,
+                                   'sub1': {'sub2': {}}})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -275,8 +275,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_path_revision_path_not_modified(self):
-    status = self._create_status({ 'int': 2,
-                                   'sub1': { 'sub2': {}}})
+    status = self._create_status({'int': 2,
+                                   'sub1': {'sub2': {}}})
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -307,7 +307,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
     # The request to make.
     request = self._dummy_request_put(path=['web'],
-                                      content='{ "inserted": "value" }')
+                                      content='{"inserted": "value" }')
 
     #      Create and validate the response.
     d = self._render(resource, request)
@@ -315,7 +315,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), { 'web': { 'inserted': 'value'}})
+      self.assertEquals(status.get(), {'web': {'inserted': 'value'}})
 
     d.addCallback(rendered)
     return d
@@ -332,7 +332,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
     # The request to make.
     request = self._dummy_request_put(path=['web', 'sub', 'sub2'],
-                                      content='{ "inserted": "value" }')
+                                      content='{"inserted": "value" }')
 
     # Create and validate the response.
     d = self._render(resource, request)
@@ -340,8 +340,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), { 'web': {'sub': {'sub2':
-                                          { 'inserted': 'value'}}}})
+      self.assertEquals(status.get(), {'web': {'sub': {'sub2':
+                                          {'inserted': 'value'}}}})
 
     d.addCallback(rendered)
     return d
@@ -358,7 +358,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
     # The request to make.
     request = self._dummy_request_put(path=['unknown'],
-                                      content='{ "inserted": "value" }')
+                                      content='{"inserted": "value" }')
 
     # Create and validate the response.
     self.assertRaises(AssertionError,
@@ -376,7 +376,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
     # The request to make.
     request = self._dummy_request_put(path=['web'],
-                                      content='{ "inserted": "value" }',
+                                      content='{"inserted": "value" }',
                                       revision=2)
 
     # Create and validate the response.
@@ -385,7 +385,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), { 'web': { 'inserted': 'value'}})
+      self.assertEquals(status.get(), {'web': {'inserted': 'value'}})
 
     d.addCallback(rendered)
     return d
@@ -402,7 +402,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
 
     # The request to make.
     request = self._dummy_request_put(path=['web'],
-                                      content='{ "inserted": "value" }',
+                                      content='{"inserted": "value" }',
                                       revision=23)
 
     # Create and validate the response.
@@ -411,7 +411,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 412)  # Precondition Failure
       self.assertEquals(''.join(request.written), 'Revision mismatch.')
-      self.assertEquals(status.get(), { 'web': {}})
+      self.assertEquals(status.get(), {'web': {}})
 
     d.addCallback(rendered)
     return d

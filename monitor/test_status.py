@@ -21,11 +21,11 @@ class TestStatus(monitor.util.test_base.TestBase):
 
   def test_get(self):
     contents = {
-          'int': 2,
-          'string': 'foo',
-          'list': [],
-          'dict': {'sub1': 3, 'sub2': 4},
-        }
+        'int': 2,
+        'string': 'foo',
+        'list': [],
+        'dict': {'sub1': 3, 'sub2': 4},
+    }
 
     status = self._create_status(contents)
 
@@ -46,14 +46,14 @@ class TestStatus(monitor.util.test_base.TestBase):
 
   def test_get_matching(self):
     contents = {
-      'match1': { 'foo': 1 },
-      'match2': { 'foo': 2 },
-      'solo1': { 'bar': 3 },
-      'deep1': { 'sub_deep1': { 'foo': 4 },
-                 'sub_deep2': { 'foo': 5 } },
-      'deep2': { 'sub_deep1': { 'foo': 6 } },
-      'string': 'foo',
-      'list': []
+        'match1': {'foo': 1},
+        'match2': {'foo': 2},
+        'solo1': {'bar': 3},
+        'deep1': {'sub_deep1': {'foo': 4},
+                  'sub_deep2': {'foo': 5}},
+        'deep2': {'sub_deep1': {'foo': 6}},
+        'string': 'foo',
+        'list': []
     }
 
     status = self._create_status(contents)
@@ -146,7 +146,7 @@ class TestStatus(monitor.util.test_base.TestBase):
     # Set a nested value with new intermediate paths.
     status.set('status://nest1/nest2/nest3', 'foo')
     self.assertEqual(status.get('status://nest1'),
-                     {'nest2': {'nest3': 'foo' }})
+                     {'nest2': {'nest3': 'foo'}})
     self.assertEqual(status.revision(), 5)
 
   def test_set_revision(self):
@@ -165,14 +165,13 @@ class TestStatus(monitor.util.test_base.TestBase):
     self.assertEqual(status.revision(), 2)
 
   def test_helpers(self):
-    status = self._create_status(
-        {
-          'int': 2,
-          'list': [],
-          'dict': {'sub1': 3, 'sub2': 4},
-          'nested': {'sub1': {'subsub1': 5, 'subsub2':6},
-                     'sub2': {'subsub1': 7, 'subsub2':8}},
-        })
+    status = self._create_status({
+        'int': 2,
+        'list': [],
+        'dict': {'sub1': 3, 'sub2': 4},
+        'nested': {'sub1': {'subsub1': 5, 'subsub2':6},
+                   'sub2': {'subsub1': 7, 'subsub2':8}},
+    })
 
     # _validate_url
     status._validate_url('status://')
@@ -238,14 +237,14 @@ class TestStatus(monitor.util.test_base.TestBase):
 class TestStatusDeferred(monitor.util.test_base.TestBase):
 
   def test_mismatch_revision_no_url(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     d = status.deferred(0)
     d.addCallback(self.assertEquals, ['status://'])
     self.assertTrue(d.called)
 
   def test_mismatch_revision_with_url(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     url = 'status://int'
     d = status.deferred(0, url=url)
@@ -253,7 +252,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     self.assertTrue(d.called)
 
   def test_single_change_no_url(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     # Test that the expected notification fires after we make a change.
     url = 'status://int'
@@ -264,7 +263,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
 
   def test_double_change_no_url(self):
     """Ensure the deferred does not fire on a non-meaningful change."""
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     d = status.deferred(revision=1)
     status.set('status://int', 3)
@@ -273,20 +272,20 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     self.assertTrue(d.called)
 
   def test_no_change(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     d = status.deferred(revision=1)
     self.assertFalse(d.called)
 
   def test_default_revision(self):
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     d = status.deferred()
     self.assertFalse(d.called)
 
   def test_noop_change(self):
     """Ensure the deferred does not fire on a non-meaningful change."""
-    status = self._create_status({ 'int': 2 })
+    status = self._create_status({'int': 2})
 
     d = status.deferred(revision=1)
     status.set('status://int', 2)
@@ -328,7 +327,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     self.assertTrue(d.called)
 
   def test_url_circular_deferreds(self):
-    status = self._create_status({ 'foo': 1, 'bar': 1 })
+    status = self._create_status({'foo': 1, 'bar': 1})
 
     url_foo = 'status://foo'
     url_bar = 'status://bar'
@@ -350,7 +349,7 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     self.assertTrue(d_bar.called)
 
   def test_url_not_updated(self):
-    status = self._create_status({ 'foo': 1, 'bar': 2 })
+    status = self._create_status({'foo': 1, 'bar': 2})
 
     # Ask for a specialized notification.
     d = status.deferred(revision=1, url='status://bar')

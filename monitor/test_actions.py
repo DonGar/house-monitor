@@ -140,12 +140,12 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
     action_set_complex = {
       'action': 'set',
-      'value': { 'foo': 'bar'},
+      'value': {'foo': 'bar'},
       'dest': 'status://target',
     }
 
     monitor.actions.handle_action(status, action_set_complex)
-    self.assertEqual(status.get('status://target'), { 'foo': 'bar'})
+    self.assertEqual(status.get('status://target'), {'foo': 'bar'})
 
     action_set_src = {
       'action': 'set',

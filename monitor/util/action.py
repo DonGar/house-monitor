@@ -35,7 +35,7 @@ def find_download_name(status, download_pattern, download_dir=None):
     download_dir = status.get('status://server/downloads')
 
   # This dictionary defines the field values that can be filled in.
-  pattern_values = { 'time': int(time.time()) }
+  pattern_values = {'time': int(time.time())}
   download_name = download_pattern.format(**pattern_values)
 
   # Make sure the downloads dir can't be escaped.

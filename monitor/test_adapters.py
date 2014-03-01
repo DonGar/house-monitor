@@ -17,7 +17,7 @@ class TestFileAdapter(monitor.util.test_base.TestBase):
     status = self._create_status({})
     url = 'status://foo'
     name = 'foo'
-    json = { 'type': 'file' }
+    json = {'type': 'file'}
 
     UNIQUE = object()
 
@@ -33,7 +33,7 @@ class TestFileAdapter(monitor.util.test_base.TestBase):
     status = self._create_status({})
     url = 'status://foo'
     name = 'foo'
-    json = { 'type': 'file', 'filename': 'bar.json' }
+    json = {'type': 'file', 'filename': 'bar.json'}
 
     UNIQUE = object()
 
@@ -50,7 +50,7 @@ class TestWebAdapter(monitor.util.test_base.TestBase):
 
   def test_web_adapter(self):
     status = self._create_status({})
-    json = { 'type': 'web' }
+    json = {'type': 'web'}
 
     monitor.adapter.WebAdapter(status, 'status://foo', 'foo', json)
     monitor.adapter.WebAdapter(status, 'status://bar', 'bar', json)
