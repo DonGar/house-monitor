@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import datetime
-import mock
 import unittest
 
 import monitor.rules_engine
@@ -43,12 +42,9 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
       def utc_now(self):
         return nows.pop(0)
 
-    return status, TestEngine(status)
+    return status, TestEngine(status, monitor.test_actions.MockActionManager())
 
   def _test_actions_fired(self, engine, expected_actions, delay=0.01):
-    action_patch = mock.patch('monitor.actions.handle_action', autospec=True)
-    mocked_action = action_patch.start()
-
     # This deferred fires when the test is complete, and
     # the engine has shutdown.
     test_finished = defer.Deferred()
@@ -56,10 +52,9 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     def actions_fired_test():
       try:
         # Test results of test.
-        mocked_action.assert_has_calls(expected_actions, any_order=True)
+        self.assertEqual(engine._action_manager.actions, expected_actions)
       finally:
-        # Remove mock patches, and shutdown rules engine.
-        mock.patch.stopall()
+        # Shutdown rules engine.
         engine.stop().chainDeferred(test_finished)
 
     # Delay long enough for all processing callbacks to finish.
@@ -80,7 +75,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_no_rules(self):
     """Verify handle_action with status and http URL strings."""
-
     _status, engine = self._setup_status_engine({})
 
     self.assertEquals(len(engine._helpers), 0)
@@ -93,7 +87,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_watch_rule_create_shutdown(self):
     """Setup the rules engine with a single watch rule and shut it down."""
-
     _status, engine = self._setup_status_engine({
                          'watch_test': {
                            'behavior': 'watch',
@@ -107,7 +100,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_watch_rule_fired(self):
     """Setup and fire a single watch rule in the rules_engine."""
-
     status, engine = self._setup_status_engine({
                          'watch_test': {
                            'behavior': 'watch',
@@ -116,7 +108,7 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                          }
                        })
 
-    expected_actions = [mock.call(status, 'take_action')]
+    expected_actions = ['status://config/rule/watch_test/action']
     d = self._test_actions_fired(engine, expected_actions)
 
     status.set('status://values/one', 2)
@@ -125,7 +117,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_watch_rule_fired_twice(self):
     """Setup and fire a single watch rule in the rules_engine twice."""
-
     status, engine = self._setup_status_engine({
                          'watch_test': {
                            'behavior': 'watch',
@@ -134,8 +125,8 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                          }
                        })
 
-    expected_actions = [mock.call(status, 'take_action'),
-                        mock.call(status, 'take_action')]
+    expected_actions = ['status://config/rule/watch_test/action',
+                        'status://config/rule/watch_test/action']
     d = self._test_actions_fired(engine, expected_actions)
 
     status.set('status://values/one', 2)
@@ -145,7 +136,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_watch_rules_fired(self):
     """Setup and fire two watch rules in the rules_engine."""
-
     status, engine = self._setup_status_engine({
                          'watch_test1': {
                            'behavior': 'watch',
@@ -159,8 +149,8 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                          }
                        })
 
-    expected_actions = [mock.call(status, 'take_action1'),
-                        mock.call(status, 'take_action2')]
+    expected_actions = ['status://config/rule/watch_test1/action',
+                        'status://config/rule/watch_test2/action']
     d = self._test_actions_fired(engine, expected_actions)
 
     status.set('status://values/one', 2)
@@ -174,7 +164,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_daily_rule_create_shutdown(self):
     """Setup the rules engine with a single daily rule and shut it down."""
-
     # time is hours before the rule should fire.
     time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
     time2 = time1 + datetime.timedelta(hours=1)
@@ -193,12 +182,11 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_daily_rule_time_fire(self):
     """Setup the rules engine with a single daily rule and shut it down."""
-
     # time1 0.005 seconds before rule should fire.
     time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 995000)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    status, engine = self._setup_status_engine({
+    _, engine = self._setup_status_engine({
                          'daily_test': {
                            'behavior': 'daily',
                            'time': '19:04:06',
@@ -207,17 +195,17 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                        },
                        utc_nows=(time1, time2))
 
-    return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')])
+    return self._test_actions_fired(
+        engine,
+        ['status://config/rule/daily_test/action'])
 
   def test_daily_rule_sunrise_fire(self):
     """Setup the rules engine with a single daily rule and shut it down."""
-
     # time1 ~0.005 seconds before rule should fire.
-    time1 = datetime.datetime(2000, 1, 2, 15, 47, 48, 440000)
+    time1 = datetime.datetime(2000, 1, 2, 15, 47, 48, 310000)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    status, engine = self._setup_status_engine({
+    _, engine = self._setup_status_engine({
                          'daily_test_sunrise': {
                            'behavior': 'daily',
                            'time': 'sunrise',
@@ -226,17 +214,18 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                        },
                        utc_nows=(time1, time2))
 
-    return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')])
+    return self._test_actions_fired(
+        engine,
+        ['status://config/rule/daily_test_sunrise/action'],
+        delay=0.2)
 
   def test_daily_rule_sunset_fire(self):
     """Setup the rules engine with a single daily rule and shut it down."""
-
     # time1 ~0.005 seconds before rule should fire.
-    time1 = datetime.datetime(2000, 1, 2, 4, 58, 50, 670000)
+    time1 = datetime.datetime(2000, 1, 2, 4, 58, 50, 570000)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    status, engine = self._setup_status_engine({
+    _, engine = self._setup_status_engine({
                          'daily_test_sunset': {
                            'behavior': 'daily',
                            'time': 'sunset',
@@ -245,8 +234,10 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                        },
                        utc_nows=(time1, time2))
 
-    return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')])
+    return self._test_actions_fired(
+        engine,
+        ['status://config/rule/daily_test_sunset/action'],
+        delay=0.2)
 
   #
   # Interval Rule Tests
@@ -254,7 +245,6 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_interval_rule_create_shutdown(self):
     """Setup the rules engine with a single interval rule and shut it down."""
-
     # time1 ~0.005 seconds before rule should fire.
     time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
     time2 = time1 + datetime.timedelta(minutes=1)
@@ -274,13 +264,12 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
   def test_interval_rule_time_fire(self):
     """Setup the rules engine with a single interval rule and shut it down."""
-
     # time1 ~0.005 seconds before rule should fire.
     time1 = datetime.datetime(2000, 1, 2, 3, 4, 59, 995000)
     time2 = time1 + datetime.timedelta(minutes=1)
 
     # Create a rule on 5 minute intervals.
-    status, engine = self._setup_status_engine({
+    _, engine = self._setup_status_engine({
                          'interval_test': {
                            'behavior': 'interval',
                            'time': '00:05:00',
@@ -289,8 +278,9 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
                        },
                        utc_nows=(time1, time2))
 
-    return self._test_actions_fired(engine,
-                                    [mock.call(status, 'take_action')])
+    return self._test_actions_fired(
+        engine,
+        ['status://config/rule/interval_test/action'])
 
 
 if __name__ == '__main__':

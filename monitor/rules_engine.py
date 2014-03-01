@@ -2,8 +2,8 @@
 
 import datetime
 import logging
+import os
 
-import monitor.actions
 from monitor.util import repeat
 
 from twisted.internet import defer
@@ -19,15 +19,14 @@ class RulesEngine(object):
   # The known types of rules.
   BEHAVIORS = ('interval', 'daily', 'watch')
 
-  def __init__(self, status):
+  def __init__(self, status, action_manager):
     self._status = status
-
+    self._action_manager = action_manager
     self._helpers = []
 
     self._update_rules()
 
   def _update_rules(self):
-
     # Stop/clear old rules.
     for helper in self._helpers:
       helper.stop()
@@ -112,7 +111,9 @@ class _RuleHelper(object):
 
   def fire(self, value):
     logging.info('Firing rule: %s', self._url)
-    monitor.actions.handle_action(self._status, self._rule['action'])
+    # pylint: disable=W0212
+    self._engine._action_manager.handle_action(
+        os.path.join(self._url, 'action'))
     return value
 
 
@@ -180,7 +181,6 @@ class _WatchHelper(_RuleHelper):
       fire_action = True
 
     if fire_action:
-      logging.info('Firing rule: %s', self._url)
-      monitor.actions.handle_action(self._status, self._rule['action'])
+      super(_WatchHelper, self).fire(value)
 
     return value

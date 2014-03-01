@@ -11,6 +11,7 @@ from twisted.internet import reactor
 from twisted.web.static import File
 from twisted.web.server import Site
 
+import monitor.actions
 import monitor.adapter
 import monitor.iogear_adapter
 import monitor.snmp_adapter
@@ -87,16 +88,19 @@ def setup():
   # Setup the normal adapters.
   setupAdapters(status)
 
+  # Create the manager for performing actions.
+  action_manager = monitor.actions.ActionManager(status)
+
   # Instantiating the engine sets up the deferreds needed to keep it running.
-  monitor.rules_engine.RulesEngine(status)
+  monitor.rules_engine.RulesEngine(status, action_manager)
 
   monitor.up.setup(status)
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content
   root = File("./static")
-  root.putChild("button", monitor.web_resources.Button(status))
-  root.putChild("host", monitor.web_resources.Host(status))
+  root.putChild("button", monitor.web_resources.Button(status, action_manager))
+  root.putChild("host", monitor.web_resources.Host(status, action_manager))
   root.putChild("log", monitor.web_resources.Log(log_handler, log_buffer))
   root.putChild("restart", monitor.web_resources.Restart(status))
   root.putChild("status", monitor.web_resources.Status(status))

@@ -10,7 +10,6 @@ from twisted.internet import reactor
 from twisted.web import server
 from twisted.web.resource import Resource
 
-import monitor.actions
 import monitor.adapter
 
 from monitor.util import wake_on_lan
@@ -36,8 +35,11 @@ class _ConfigHandler(Resource):
 class _ConfigActionHandler(_ConfigHandler):
   """Create a handler that parses arguments and hands off the action request."""
 
-  def render_POST(self, request):
+  def __init__(self, status, action_manager):
+    _ConfigHandler.__init__(self, status)
+    self._action_manager = action_manager
 
+  def render_POST(self, request):
     # If postpath ended with /, there is a trailing empty string. Ditch it.
     if request.postpath and request.postpath[-1] == '':
       request.postpath.pop()
@@ -74,7 +76,7 @@ class Button(_ConfigActionHandler):
       # Run the default action, if present.
       action_uri = os.path.join(url, 'action')
       if self.status.get(action_uri, None):
-        monitor.actions.handle_action(self.status, action_uri)
+        self._action_manager.handle_action(action_uri)
 
     request.setResponseCode(200)
     return 'Success'
@@ -97,7 +99,7 @@ class Host(_ConfigActionHandler):
 
       if action:
         action_uri = os.path.join(url, 'actions', action)
-        monitor.actions.handle_action(self.status, action_uri)
+        self._action_manager.handle_action(action_uri)
 
     request.setResponseCode(200)
     return 'Success'
