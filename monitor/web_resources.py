@@ -12,10 +12,9 @@ from twisted.web.resource import Resource
 
 import monitor.adapter
 
-from monitor.util import wake_on_lan
-
 class UnknownComponent(Exception):
   pass
+
 
 class _ConfigHandler(Resource):
   """Create a handler uses the POST handler for GET requests."""
@@ -32,74 +31,34 @@ class _ConfigHandler(Resource):
     raise Exception('render_POST not implemented.')
 
 
-class _ConfigActionHandler(_ConfigHandler):
-  """Create a handler that parses arguments and hands off the action request."""
-
-  def __init__(self, status, action_manager):
-    _ConfigHandler.__init__(self, status)
-    self._action_manager = action_manager
+class Button(_ConfigHandler):
+  """Create a handler that records a button push."""
 
   def render_POST(self, request):
     # If postpath ended with /, there is a trailing empty string. Ditch it.
     if request.postpath and request.postpath[-1] == '':
       request.postpath.pop()
 
-    # Expecting 'adapter/id'. Anything else is bad
+    # Expecting name of button (id). Anything else is bad
     assert len(request.postpath) == 1, request.postpath
 
     component_id = request.postpath[0]
     return self.render_action(request, component_id)
 
-  def render_action(self, _request, _component_id):
-    raise Exception('render_action not implemented.')
-
-
-class Button(_ConfigActionHandler):
-  """Create a handler that records a button push."""
-
   def render_action(self, request, component_id):
-
     # Remember when the button was pushed.
-    # Convert to a generic action.
-
     button_search_url = os.path.join('status://*/button', component_id)
     button_urls = self.status.get_matching_urls(button_search_url)
 
     if not button_urls:
       raise UnknownComponent(component_id)
 
+    now = int(time.time())
+
     for url in button_urls:
       # Update when the button was pushed.
       pushed_url = os.path.join(url, 'pushed')
-      self.status.set(pushed_url, int(time.time()))
-
-      # Run the default action, if present.
-      action_uri = os.path.join(url, 'action')
-      if self.status.get(action_uri, None):
-        self._action_manager.handle_action(action_uri)
-
-    request.setResponseCode(200)
-    return 'Success'
-
-
-class Host(_ConfigActionHandler):
-  """Create a handler that records a request host action."""
-
-  def render_action(self, request, component_id):
-
-
-    host_search_url = os.path.join('status://*/host', component_id)
-    host_urls = self.status.get_matching_urls(host_search_url)
-
-    if not host_urls:
-      raise UnknownComponent(component_id)
-
-    for url in host_urls:
-      action = request.args.get('action', [None])[0]
-
-      if action:
-        action_uri = os.path.join(url, 'actions', action)
-        self._action_manager.handle_action(action_uri)
+      self.status.set(pushed_url, now)
 
     request.setResponseCode(200)
     return 'Success'
@@ -228,17 +187,6 @@ class Status(Resource):
     except monitor.status.RevisionMismatch:
       request.setResponseCode(412) # Precondition Failure
       return 'Revision mismatch.'
-
-    request.setResponseCode(200)
-    return 'Success'
-
-
-class Wake(_ConfigHandler):
-
-  def render_POST(self, request):
-    for mac in request.args['target']:
-      logging.info('received request for: %s', mac)
-      wake_on_lan.wake_on_lan(mac)
 
     request.setResponseCode(200)
     return 'Success'

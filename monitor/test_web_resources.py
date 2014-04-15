@@ -16,11 +16,9 @@ import monitor.util.test_base
 class TestWebResourcesButton(monitor.util.test_base.TestBase):
   """Test /button handler."""
 
-  def _test_button_helper(self, status, request, expected_actions, time_uri):
-    action_manager = monitor.test_actions.MockActionManager()
-
+  def _test_button_helper(self, status, request, time_uri):
     # The resource to test.
-    resource = monitor.web_resources.Button(status, action_manager)
+    resource = monitor.web_resources.Button(status)
 
     # Create and validate the response.
     def rendered(_):
@@ -28,7 +26,6 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
       self.assertEquals(''.join(request.written), 'Success')
       # Test pushed time was set. Any current time is > 100.
       self.assertTrue(status.get(time_uri) > 100)
-      self.assertEqual(action_manager.actions, expected_actions)
 
     d = self._render(resource, request)
     d.addCallback(rendered)
@@ -36,12 +33,11 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
 
   def test_unknown_button(self):
     status = self._create_status({'adapter': {'button': {'foo': {}}}})
-    action_manager = monitor.actions.ActionManager(status)
 
     # Setup
     request_unknown = DummyRequest(['unknown'])
     request_malformed = DummyRequest(['foo', 'bar'])
-    resource = monitor.web_resources.Button(status, action_manager)
+    resource = monitor.web_resources.Button(status)
 
     # Ensure these fail.
     self.assertRaises(monitor.web_resources.UnknownComponent,
@@ -49,77 +45,14 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
     self.assertRaises(AssertionError,
                       self._render, resource, request_malformed)
 
-  def test_button_no_action(self):
-    status = self._create_status({'adapter': {'button': {'foo': {}}}})
-
-    request = DummyRequest(['foo'])
-    expected_actions = []
-    return self._test_button_helper(status, request, expected_actions,
-                                    'status://adapter/button/foo/pushed')
-
-  def test_button_action(self):
+  def test_button(self):
     status = self._create_status({'adapter': {'button': {'foo':
                                      {'action': 'action_pushed',
                                       'pushed': 4}}}})
 
     request = DummyRequest(['foo'])
-    expected_actions = ['status://adapter/button/foo/action']
-    return self._test_button_helper(status, request, expected_actions,
+    return self._test_button_helper(status, request,
                                     'status://adapter/button/foo/pushed')
-
-
-class TestWebResourcesHost(monitor.util.test_base.TestBase):
-  """Test /host handler."""
-
-  def _test_host_helper(self, status, request, expected_actions):
-    action_manager = monitor.test_actions.MockActionManager()
-
-    # The resource to test.
-    resource = monitor.web_resources.Host(status, action_manager)
-
-    # Create and validate the response.
-    d = self._render(resource, request)
-    def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
-      self.assertEqual(action_manager.actions, expected_actions)
-    d.addCallback(rendered)
-    return d
-
-  def test_unknown_host(self):
-    status = self._create_status(
-        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar'}}}}})
-    action_manager = monitor.test_actions.MockActionManager()
-
-    # Setup
-    request_unknown = DummyRequest(['unknown'])
-    request_malformed = DummyRequest(['foo', 'bar'])
-    resource = monitor.web_resources.Button(status, action_manager)
-
-    # Ensure these fail.
-    self.assertRaises(monitor.web_resources.UnknownComponent,
-                      self._render, resource, request_unknown)
-    self.assertRaises(AssertionError,
-                      self._render, resource, request_malformed)
-
-  def test_host_no_action(self):
-    status = self._create_status(
-        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar'}}}}})
-
-    request = DummyRequest(['foo'])
-    expected_actions = []
-
-    return self._test_host_helper(status, request, expected_actions)
-
-  def test_host_explicit_action(self):
-    status = self._create_status(
-        {'adapter': {'host': {'foo': {'actions': {'bar': 'action_bar'}}}}})
-
-    request = DummyRequest(['foo'])
-    request.addArg('action', 'bar')
-    expected_actions = ['status://adapter/host/foo/actions/bar']
-
-    return self._test_host_helper(status, request, expected_actions)
 
 
 class TestWebResourcesStatus(monitor.util.test_base.TestBase):
@@ -431,33 +364,6 @@ class TestWebResourcesRestart(monitor.util.test_base.TestBase):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
       mocked.assert_called_once_with()
-      patch.stop()
-    d.addCallback(rendered)
-    return d
-
-
-class TestWebResourcesWake(monitor.util.test_base.TestBase):
-  """Test /wake handler."""
-  def test_wake(self):
-    status = self._create_status()
-
-    # The resource to test.
-    resource = monitor.web_resources.Wake(status)
-
-    # The request to make.
-    request = DummyRequest([])
-    request.addArg('target', '11:22:33:44:55:66')
-
-    patch = mock.patch('monitor.util.wake_on_lan.wake_on_lan',
-                       autospec=True)
-    mocked = patch.start()
-
-    # Create and validate the response.
-    d = self._render(resource, request)
-    def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
-      mocked.assert_called_once_with('11:22:33:44:55:66')
       patch.stop()
     d.addCallback(rendered)
     return d
