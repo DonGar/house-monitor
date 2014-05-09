@@ -46,9 +46,18 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
                       self._render, resource, request_malformed)
 
   def test_button(self):
-    status = self._create_status({'adapter': {'button': {'foo':
-                                     {'action': 'action_pushed',
-                                      'pushed': 4}}}})
+    status = self._create_status(
+        {
+            'adapter': {
+                'button': {
+                    'foo': {
+                        'action': 'action_pushed',
+                        'pushed': 4
+                    }
+                }
+            }
+        }
+    )
 
     request = DummyRequest(['foo'])
     return self._test_button_helper(status, request,
@@ -179,8 +188,12 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_path(self):
-    status = self._create_status({'int': 2,
-                                   'sub1': {'sub2': {}}})
+    status = self._create_status(
+        {
+            'int': 2,
+            'sub1': {'sub2': {}}
+        }
+    )
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -202,8 +215,12 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     return d
 
   def test_status_path_revision_path_not_modified(self):
-    status = self._create_status({'int': 2,
-                                   'sub1': {'sub2': {}}})
+    status = self._create_status(
+        {
+            'int': 2,
+            'sub1': {'sub2': {}}
+        }
+    )
 
     # The resource to test.
     resource = monitor.web_resources.Status(status)
@@ -267,8 +284,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), {'web': {'sub': {'sub2':
-                                          {'inserted': 'value'}}}})
+      self.assertEquals(status.get(),
+                        {'web': {'sub': {'sub2': {'inserted': 'value'}}}})
 
     d.addCallback(rendered)
     return d

@@ -13,15 +13,15 @@ import monitor.util.test_base
 import monitor.util.wake_on_lan
 
 STATUS_VALUES = {
-  'server': {
-    'email_address': 'default@address.com',
-    'downloads': '/downloads',
-  },
+    'server': {
+        'email_address': 'default@address.com',
+        'downloads': '/downloads',
+    },
 
-  'reference_indirect': 'status://url',
-  'url': 'http://some/url',
+    'reference_indirect': 'status://url',
+    'url': 'http://some/url',
 
-  'value': 'status_value',
+    'value': 'status_value',
 }
 
 
@@ -48,11 +48,11 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     status, action_manager = self._setup_action_manager()
 
     action_delayed = {
-      'action': 'delayed',
-      'seconds': 1,
-      'delayed_action': {
-          'action': 'increment',
-          'dest': 'status://target',
+        'action': 'delayed',
+        'seconds': 1,
+        'delayed_action': {
+            'action': 'increment',
+            'dest': 'status://target',
         }
     }
 
@@ -117,8 +117,8 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     _, action_manager = self._setup_action_manager()
 
     action_fetch = {
-      'action': 'fetch_url',
-      'url': 'http://some/url',
+        'action': 'fetch_url',
+        'url': 'http://some/url',
     }
 
     with mock.patch('monitor.util.action.get_page_wrapper',
@@ -127,9 +127,9 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
       mocked.assert_called_once_with('http://some/url')
 
     action_fetch_download = {
-      'action': 'fetch_url',
-      'url': 'http://some/url',
-      'download_name': 'my_download_name'
+        'action': 'fetch_url',
+        'url': 'http://some/url',
+        'download_name': 'my_download_name'
     }
 
     with mock.patch('monitor.util.action.download_page_wrapper',
@@ -143,27 +143,27 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     status, action_manager = self._setup_action_manager()
 
     action_set_value = {
-      'action': 'set',
-      'value': True,
-      'dest': 'status://target',
+        'action': 'set',
+        'value': True,
+        'dest': 'status://target',
     }
 
     action_manager.handle_action(action_set_value)
     self.assertEqual(status.get('status://target'), True)
 
     action_set_complex = {
-      'action': 'set',
-      'value': {'foo': 'bar'},
-      'dest': 'status://target',
+        'action': 'set',
+        'value': {'foo': 'bar'},
+        'dest': 'status://target',
     }
 
     action_manager.handle_action(action_set_complex)
     self.assertEqual(status.get('status://target'), {'foo': 'bar'})
 
     action_set_src = {
-      'action': 'set',
-      'src': 'status://value',
-      'dest': 'status://target',
+        'action': 'set',
+        'src': 'status://value',
+        'dest': 'status://target',
     }
 
     action_manager.handle_action(action_set_src)
@@ -174,8 +174,8 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     status, action_manager = self._setup_action_manager()
 
     action_set_value = {
-      'action': 'increment',
-      'dest': 'status://target',
+        'action': 'increment',
+        'dest': 'status://target',
     }
 
     action_manager.handle_action(action_set_value)
@@ -190,8 +190,8 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     _, action_manager = self._setup_action_manager()
 
     action_wol = {
-      'action': 'wol',
-      'mac': '11:22:33:44:55:66',
+        'action': 'wol',
+        'mac': '11:22:33:44:55:66',
     }
 
     with mock.patch('monitor.util.wake_on_lan.wake_on_lan',
@@ -204,9 +204,9 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     status, action_manager = self._setup_action_manager()
 
     action_ping = {
-      'action': 'ping',
-      'hostname': 'foo',
-      'dest': 'status://target',
+        'action': 'ping',
+        'hostname': 'foo',
+        'dest': 'status://target',
     }
 
     with mock.patch('monitor.util.ping.ping',
@@ -221,7 +221,7 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     status, action_manager = self._setup_action_manager()
 
     action_email = {
-      'action': 'email'
+        'action': 'email'
     }
 
     with mock.patch('monitor.util.sendemail.email', autospec=True) as mocked:
@@ -236,11 +236,11 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     """Verify handle_action with fully specified email values."""
     status, action_manager = self._setup_action_manager()
     action_email = {
-      'action': 'email',
+        'action': 'email',
 
-      'to': 'to@address.com',
-      'subject': 'subject line',
-      'body': 'message body',
+        'to': 'to@address.com',
+        'subject': 'subject line',
+        'body': 'message body',
     }
 
     with mock.patch('monitor.util.sendemail.email', autospec=True) as mocked:
@@ -265,27 +265,27 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
     file_default = '/tmpdir/foo_default.jpg'
 
     action_email = {
-      'action': 'email',
+        'action': 'email',
 
-      'to': 'to@address.com',
-      'subject': 'subject line',
-      'body': 'message body',
-      'attachments': [
-        {
-          'url': url_preserve,
-          'download_name': 'foo_preserve.jpg',
-          'preserve': True
-        },
-        {
-          'url': url_temp,
-          'download_name': 'foo_temp.jpg',
-          'preserve': False
-        },
-        {
-          'url': url_default,
-          'download_name': 'foo_default.jpg'
-        }
-      ]
+        'to': 'to@address.com',
+        'subject': 'subject line',
+        'body': 'message body',
+        'attachments': [
+            {
+                'url': url_preserve,
+                'download_name': 'foo_preserve.jpg',
+                'preserve': True
+            },
+            {
+                'url': url_temp,
+                'download_name': 'foo_temp.jpg',
+                'preserve': False
+            },
+            {
+                'url': url_default,
+                'download_name': 'foo_default.jpg'
+            }
+        ]
     }
 
     download_deferreds = []

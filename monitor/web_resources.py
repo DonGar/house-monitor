@@ -76,8 +76,8 @@ class Log(Resource):
     log = self._log_buffer.getvalue().split('\n')
 
     return {
-      'revision': len(log),
-      'log': log,
+        'revision': len(log),
+        'log': log,
     }
 
   def render_GET(self, request):
@@ -136,10 +136,10 @@ class Status(Resource):
 
     def _send_update(value):
       response_value = {
-            'revision': self.status.revision(),
-            'status': self.status.get(status_url),
-            'url': os.path.join(str(request.URLPath()), *request.postpath)
-          }
+          'revision': self.status.revision(),
+          'status': self.status.get(status_url),
+          'url': os.path.join(str(request.URLPath()), *request.postpath)
+      }
 
       request.setResponseCode(200)
       request.setHeader('content-type', 'application/json')

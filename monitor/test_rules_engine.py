@@ -20,19 +20,19 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def _setup_status_engine(self, rules, utc_nows=()):
 
     status = self._create_status({
-          'server': {
+        'server': {
             'latitude': '37.3861',
             'longitude': '-122.0839',
             'email_address': 'default@address.com',
-          },
-          'config': {
+        },
+        'config': {
             'rule': rules
-          },
-          'values': {
+        },
+        'values': {
             'one': 1,
             'two': 1
-          }
-        })
+        }
+    })
 
     # mutable version of times list we received.
     nows = list(utc_nows)
@@ -88,12 +88,12 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_watch_rule_create_shutdown(self):
     """Setup the rules engine with a single watch rule and shut it down."""
     _status, engine = self._setup_status_engine({
-                         'watch_test': {
-                           'behavior': 'watch',
-                           'value': 'status://values/one',
-                           'action': 'take_action'
-                         }
-                       })
+        'watch_test': {
+            'behavior': 'watch',
+            'value': 'status://values/one',
+            'action': 'take_action'
+        }
+    })
 
     self.assertEquals(len(engine._helpers), 1)
     return self._test_actions_fired(engine, [])
@@ -101,12 +101,12 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_watch_rule_fired(self):
     """Setup and fire a single watch rule in the rules_engine."""
     status, engine = self._setup_status_engine({
-                         'watch_test': {
-                           'behavior': 'watch',
-                           'value': 'status://values/one',
-                           'action': 'take_action'
-                         }
-                       })
+        'watch_test': {
+            'behavior': 'watch',
+            'value': 'status://values/one',
+            'action': 'take_action'
+        }
+    })
 
     expected_actions = ['status://config/rule/watch_test/action']
     d = self._test_actions_fired(engine, expected_actions)
@@ -118,12 +118,12 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_watch_rule_fired_twice(self):
     """Setup and fire a single watch rule in the rules_engine twice."""
     status, engine = self._setup_status_engine({
-                         'watch_test': {
-                           'behavior': 'watch',
-                           'value': 'status://values/one',
-                           'action': 'take_action'
-                         }
-                       })
+        'watch_test': {
+            'behavior': 'watch',
+            'value': 'status://values/one',
+            'action': 'take_action'
+        }
+    })
 
     expected_actions = ['status://config/rule/watch_test/action',
                         'status://config/rule/watch_test/action']
@@ -137,17 +137,17 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
   def test_watch_rules_fired(self):
     """Setup and fire two watch rules in the rules_engine."""
     status, engine = self._setup_status_engine({
-                         'watch_test1': {
-                           'behavior': 'watch',
-                           'value': 'status://values/one',
-                           'action': 'take_action1'
-                         },
-                         'watch_test2': {
-                           'behavior': 'watch',
-                           'value': 'status://values/two',
-                           'action': 'take_action2'
-                         }
-                       })
+        'watch_test1': {
+            'behavior': 'watch',
+            'value': 'status://values/one',
+            'action': 'take_action1'
+        },
+        'watch_test2': {
+            'behavior': 'watch',
+            'value': 'status://values/two',
+            'action': 'take_action2'
+        }
+    })
 
     expected_actions = ['status://config/rule/watch_test1/action',
                         'status://config/rule/watch_test2/action']
@@ -168,14 +168,16 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    _status, engine = self._setup_status_engine({
-                         'daily_test': {
-                           'behavior': 'daily',
-                           'time': '12:34:56',
-                           'action': 'take_action'
-                         }
-                       },
-                       utc_nows=(time1, time2))
+    _status, engine = self._setup_status_engine(
+        {
+            'daily_test': {
+                'behavior': 'daily',
+                'time': '12:34:56',
+                'action': 'take_action'
+            }
+        },
+        utc_nows=(time1, time2)
+    )
 
     self.assertEquals(len(engine._helpers), 1)
     return self._test_actions_fired(engine, [])
@@ -186,14 +188,16 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     time1 = datetime.datetime(2000, 1, 2, 3, 4, 5, 995000)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    _, engine = self._setup_status_engine({
-                         'daily_test': {
-                           'behavior': 'daily',
-                           'time': '19:04:06',
-                           'action': 'take_action'
-                         }
-                       },
-                       utc_nows=(time1, time2))
+    _, engine = self._setup_status_engine(
+        {
+            'daily_test': {
+                'behavior': 'daily',
+                'time': '19:04:06',
+                'action': 'take_action'
+            }
+        },
+        utc_nows=(time1, time2)
+    )
 
     return self._test_actions_fired(
         engine,
@@ -205,14 +209,16 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     time1 = datetime.datetime(2000, 1, 2, 15, 47, 48, 310000)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    _, engine = self._setup_status_engine({
-                         'daily_test_sunrise': {
-                           'behavior': 'daily',
-                           'time': 'sunrise',
-                           'action': 'take_action'
-                         }
-                       },
-                       utc_nows=(time1, time2))
+    _, engine = self._setup_status_engine(
+        {
+            'daily_test_sunrise': {
+                'behavior': 'daily',
+                'time': 'sunrise',
+                'action': 'take_action'
+            }
+        },
+        utc_nows=(time1, time2)
+    )
 
     return self._test_actions_fired(
         engine,
@@ -225,14 +231,16 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     time1 = datetime.datetime(2000, 1, 2, 4, 58, 50, 570000)
     time2 = time1 + datetime.timedelta(hours=1)
 
-    _, engine = self._setup_status_engine({
-                         'daily_test_sunset': {
-                           'behavior': 'daily',
-                           'time': 'sunset',
-                           'action': 'take_action'
-                         }
-                       },
-                       utc_nows=(time1, time2))
+    _, engine = self._setup_status_engine(
+        {
+            'daily_test_sunset': {
+                'behavior': 'daily',
+                'time': 'sunset',
+                'action': 'take_action'
+            }
+        },
+        utc_nows=(time1, time2)
+    )
 
     return self._test_actions_fired(
         engine,
@@ -250,14 +258,16 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     time2 = time1 + datetime.timedelta(minutes=1)
 
     # Create a rule on 5 minute intervals.
-    _status, engine = self._setup_status_engine({
-                         'interval_test_shutdown': {
-                           'behavior': 'interval',
-                           'time': '00:05:00',
-                           'action': 'take_action'
-                         }
-                       },
-                       utc_nows=(time1, time2))
+    _status, engine = self._setup_status_engine(
+        {
+            'interval_test_shutdown': {
+                'behavior': 'interval',
+                'time': '00:05:00',
+                'action': 'take_action'
+            }
+        },
+        utc_nows=(time1, time2)
+    )
 
     self.assertEquals(len(engine._helpers), 1)
     return self._test_actions_fired(engine, [])
@@ -269,14 +279,16 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
     time2 = time1 + datetime.timedelta(minutes=1)
 
     # Create a rule on 5 minute intervals.
-    _, engine = self._setup_status_engine({
-                         'interval_test': {
-                           'behavior': 'interval',
-                           'time': '00:05:00',
-                           'action': 'take_action'
-                         }
-                       },
-                       utc_nows=(time1, time2))
+    _, engine = self._setup_status_engine(
+        {
+            'interval_test': {
+                'behavior': 'interval',
+                'time': '00:05:00',
+                'action': 'take_action'
+            }
+        },
+        utc_nows=(time1, time2)
+    )
 
     return self._test_actions_fired(
         engine,

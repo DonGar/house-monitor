@@ -23,9 +23,9 @@ class TestBase(twisted.trial.unittest.TestCase):
   def _create_status(self, values=None):
     if values is None:
       values = {
-        'int': 2,
-        'list': [],
-        'dict': {'sub1': 3, 'sub2': 4},
+          'int': 2,
+          'list': [],
+          'dict': {'sub1': 3, 'sub2': 4},
       }
 
     return monitor.status.Status(values)

@@ -59,20 +59,16 @@ class TestWebAdapter(monitor.util.test_base.TestBase):
     self.assertEqual(status.get('status://bar'), {})
 
     # Web Updatable Paths
+    self.assertTrue(monitor.adapter.WebAdapter.web_updatable('status://foo'))
+    self.assertTrue(monitor.adapter.WebAdapter.web_updatable('status://bar'))
     self.assertTrue(monitor.adapter.WebAdapter.web_updatable(
-                    'status://foo'))
-    self.assertTrue(monitor.adapter.WebAdapter.web_updatable(
-                    'status://bar'))
-    self.assertTrue(monitor.adapter.WebAdapter.web_updatable(
-                    'status://foo/other'))
+        'status://foo/other'))
 
     # Not Web Updatable Paths
+    self.assertFalse(monitor.adapter.WebAdapter.web_updatable('status://other'))
     self.assertFalse(monitor.adapter.WebAdapter.web_updatable(
-                     'status://other'))
-    self.assertFalse(monitor.adapter.WebAdapter.web_updatable(
-                     'status://other/foo'))
-    self.assertFalse(monitor.adapter.WebAdapter.web_updatable(
-                     'status://fo'))
+        'status://other/foo'))
+    self.assertFalse(monitor.adapter.WebAdapter.web_updatable('status://fo'))
 
 
 if __name__ == '__main__':

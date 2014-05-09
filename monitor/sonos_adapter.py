@@ -560,8 +560,8 @@ class SoCo(object):
 
     """
     headers = {
-      'Content-Type': 'text/xml',
-      'SOAPACTION': action
+        'Content-Type': 'text/xml',
+        'SOAPACTION': action
     }
 
     soap = ('<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"'

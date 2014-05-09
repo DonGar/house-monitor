@@ -34,13 +34,13 @@ class ActionManager(object):
   def __init__(self, status):
     self.status = status
     self.action_mapping = {
-      'delayed': self._handle_delayed_action,
-      'fetch_url': self._handle_fetch_action,
-      'set': self._handle_set_action,
-      'increment': self._handle_increment_action,
-      'wol': self._handle_wol_action,
-      'ping': self._handle_ping_action,
-      'email': self._handle_email_action,
+        'delayed': self._handle_delayed_action,
+        'fetch_url': self._handle_fetch_action,
+        'set': self._handle_set_action,
+        'increment': self._handle_increment_action,
+        'wol': self._handle_wol_action,
+        'ping': self._handle_ping_action,
+        'email': self._handle_email_action,
     }
 
   def handle_action(self, action):

@@ -13,9 +13,9 @@ class TestEmailUtil(monitor.util.test_base.TestBase):
     super(TestEmailUtil, self).__init__(*args, **kwargs)
 
     status_values = {
-      'server': {
-        'email_address': 'server@address.com',
-      },
+        'server': {
+            'email_address': 'server@address.com',
+        },
     }
 
     self.status = self._create_status(status_values)
