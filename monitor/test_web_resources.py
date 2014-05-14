@@ -113,13 +113,13 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written),
-                        '{\n'
-                        '    "revision": 1, \n'
-                        '    "status": {\n'
-                        '        "int": 2\n'
-                        '    }, \n'
-                        '    "url": "http://example/status"\n'
-                        '}')
+                       '{\n'
+                       '    "revision": 1, \n'
+                       '    "status": {\n'
+                       '        "int": 2\n'
+                       '    }, \n'
+                       '    "url": "http://example/status"\n'
+                       '}')
     d.addCallback(rendered)
     return d
 
@@ -137,13 +137,13 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written),
-                        '{\n'
-                        '    "revision": 1, \n'
-                        '    "status": {\n'
-                        '        "int": 2\n'
-                        '    }, \n'
-                        '    "url": "http://example/status"\n'
-                        '}')
+                       '{\n'
+                       '    "revision": 1, \n'
+                       '    "status": {\n'
+                       '        "int": 2\n'
+                       '    }, \n'
+                       '    "url": "http://example/status"\n'
+                       '}')
     d.addCallback(rendered)
     return d
 
@@ -179,11 +179,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written),
-                        '{\n'
-                        '    "revision": 1, \n'
-                        '    "status": "foo", \n'
-                        '    "url": "http://example/status/sub1"\n'
-                        '}')
+                       '{\n'
+                       '    "revision": 1, \n'
+                       '    "status": "foo", \n'
+                       '    "url": "http://example/status/sub1"\n'
+                       '}')
     d.addCallback(rendered)
     return d
 
@@ -220,13 +220,13 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written),
-                        '{\n'
-                        '    "revision": 2, \n'
-                        '    "status": {\n'
-                        '        "int": 3\n'
-                        '    }, \n'
-                        '    "url": "http://example/status"\n'
-                        '}')
+                       '{\n'
+                       '    "revision": 2, \n'
+                       '    "status": {\n'
+                       '        "int": 3\n'
+                       '    }, \n'
+                       '    "url": "http://example/status"\n'
+                       '}')
     d.addCallback(rendered)
 
     status.set('status://int', 3)
@@ -251,11 +251,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written),
-                        '{\n'
-                        '    "revision": 1, \n'
-                        '    "status": {}, \n'
-                        '    "url": "http://example/status/sub1/sub2"\n'
-                        '}')
+                       '{\n'
+                       '    "revision": 1, \n'
+                       '    "status": {}, \n'
+                       '    "url": "http://example/status/sub1/sub2"\n'
+                       '}')
     d.addCallback(rendered)
     return d
 
@@ -281,11 +281,11 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     def rendered(_):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written),
-                        '{\n'
-                        '    "revision": 1, \n'
-                        '    "status": {}, \n'
-                        '    "url": "http://example/status/sub1/sub2"\n'
-                        '}')
+                       '{\n'
+                       '    "revision": 1, \n'
+                       '    "status": {}, \n'
+                       '    "url": "http://example/status/sub1/sub2"\n'
+                       '}')
     d.addCallback(rendered)
     return d
 
@@ -360,7 +360,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written), 'Success')
       self.assertEqual(status.get(),
-                        {'web': {'sub': {'sub2': {'inserted': 'value'}}}})
+                       {'web': {'sub': {'sub2': {'inserted': 'value'}}}})
 
     d.addCallback(rendered)
     return d
@@ -437,7 +437,7 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
       self.assertEqual(request.responseCode, 200)
       self.assertEqual(''.join(request.written), 'Success')
       self.assertEqual(status.get(), {'web': {'inserted': 'value'},
-                                       'foo': {'bar': 'unrelated_value'}})
+                                      'foo': {'bar': 'unrelated_value'}})
 
     d.addCallback(rendered)
     return d

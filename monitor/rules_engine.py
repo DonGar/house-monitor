@@ -173,12 +173,17 @@ class _WatchHelper(_RuleHelper):
     return self._status.deferred(url=self._rule['value'])
 
   def fire(self, value):
+    possible_trigger_value = self._status.get(self._rule['value'])
+
     # If a trigger exists in the rule, it must match to fire the rule.
     if 'trigger' in self._rule:
-      possible_trigger_value = self._status.get(self._rule['value'])
       fire_action = possible_trigger_value == self._rule['trigger']
     else:
       fire_action = True
+
+    # If the value doesn't exist, don't fire a rule watching it.
+    if possible_trigger_value is None:
+      fire_action = False
 
     if fire_action:
       super(_WatchHelper, self).fire(value)

@@ -115,6 +115,24 @@ class TestRulesEngine(monitor.util.test_base.TestBase):
 
     return d
 
+  def test_watch_rule_value_cleared(self):
+    """Setup and clear value a watch rule watches."""
+    status, engine = self._setup_status_engine({
+        'watch_test': {
+            'behavior': 'watch',
+            'value': 'status://values/one',
+            'action': 'take_action'
+        }
+    })
+
+    # If a value is cleared, we shouldn't fire at all.
+    expected_actions = []
+    d = self._test_actions_fired(engine, expected_actions)
+
+    status.set('status://values', {})
+
+    return d
+
   def test_watch_rule_fired_twice(self):
     """Setup and fire a single watch rule in the rules_engine twice."""
     status, engine = self._setup_status_engine({
