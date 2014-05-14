@@ -33,7 +33,7 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
-disable=C0111,C0103,R0201,W0142,I0011,R0904,R0903
+disable=C0111,C0103,R0201,W0142,I0011,R0904,R0903,E1103
 
 # Disabled warnings to allow:
 #   No Docstrings.
@@ -46,7 +46,7 @@ disable=C0111,C0103,R0201,W0142,I0011,R0904,R0903
 
 # Set the output format. Available formats are text, parseable, colorized, msvs
 # (visual studio) and html
-output-format=text
+output-format=colorized
 
 # Include message's id in output
 include-ids=yes
@@ -233,7 +233,7 @@ max-returns=6
 max-branchs=12
 
 # Maximum number of statements in function / method body
-max-statements=50
+max-statements=100
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7

@@ -17,6 +17,73 @@ class UnknownUrl(Exception):
 class RevisionMismatch(Exception):
   """Raised when an operation can't compelete because of mismatch revision."""
 
+class _Node(object):
+  def __init__(self, revision, value):
+    self.revision = revision
+    self._content = self._value_to_content(value)
+    assert not isinstance(value, _Node)
+
+  def _value_to_content(self, value):
+    """Convert a status struct to nested _Node values (content).
+
+    Dictionary values have each sub-value converted to a node. Other a values
+    simply go through a deepcpoy (only needed for list values).
+    """
+    assert not isinstance(value, _Node)
+    dict_iteritems = None
+    try:
+      dict_iteritems = value.iteritems()
+    except AttributeError:
+      # Handle everything but dict.
+      return copy.deepcopy(value)
+
+    result = {}
+    for key, subvalue in dict_iteritems:
+      assert isinstance(key, basestring)
+      result[key] = _Node(self.revision, subvalue)
+    return result
+
+  def to_value(self):
+    """Convert content (_Node structure) to simple values.
+
+    Dictionary values have each sub-node converted to a values. Other a values
+    simply go through a deepcpoy (only needed for list values).
+    """
+    assert not isinstance(self._content, _Node)
+
+    if self.is_dict():
+      return {key: subvalue.to_value()
+              for key, subvalue in self._content.iteritems()}
+    else:
+      # Copy plain values that were already unpacked.
+      return copy.deepcopy(self._content)
+
+  def is_dict(self):
+    return isinstance(self._content, dict)
+
+  def add_child(self, key, value):
+    assert isinstance(key, basestring)
+    assert self.is_dict()
+
+    new_node = _Node(self.revision, value)
+    self._content[key] = new_node
+    return new_node
+
+  def child(self, key):
+    assert isinstance(key, basestring)
+    assert self.is_dict()
+
+    return self._content[key]
+
+  def children(self):
+    assert self.is_dict()
+    return self._content.keys()
+
+  def __repr__(self):
+    return '%s(0x%s): rev: %s - contents: %s' % (type(self),
+                                                 id(self),
+                                                 self.revision,
+                                                 self._content)
 
 #
 # See 'status' variable at the end.
@@ -28,23 +95,23 @@ class Status(object):
     if value is None:
       value = {}
 
-    self._revision = 1
-    self._values = copy.deepcopy(value)
+    self._node = _Node(revision=1, value=value)
     self._notifications = set()
 
-  def revision(self):
+  def revision(self, url='status://'):
     """Return the current revision of the system status.
 
     This number starts 1 one at startup, and increases monotonically with
     every change.
     """
-    return self._revision
+    keys = self._parse_url(url)
+    return self._get_node_by_keys(keys).revision
 
   def get(self, url='status://', default_result=None):
     """Fetch a subtree from the status."""
     try:
       keys = self._parse_url(url)
-      return copy.deepcopy(self._get_values_by_keys(keys))
+      return self._get_node_by_keys(keys).to_value()
     except UnknownUrl:
       return default_result
 
@@ -56,53 +123,56 @@ class Status(object):
     """
     return self._expand_wildcards(url)
 
-  def get_matching_values(self, url):
-    """Accept urls with wild cards.
-
-    Returns:
-      A copy of status will all content not matching the request URL stripped.
-    """
-    result = Status()
-
-    for u in self.get_matching_urls(url):
-      result.set(u, self.get(u))
-
-    return result.get()
-
   def set(self, url, update_value, revision=None):
     """Change the value of a status subtree.
 
     Will create parent dictionaries as needed to satisfy the URL.
     """
-
-    if revision is not None and revision != self._revision:
-      raise RevisionMismatch('%d received, %d current' %
-                             (revision, self._revision))
-
-    # The special case of setting the top level node.
-    if url == PREFIX:
-      self._values = copy.deepcopy(update_value)
-      self._notify()
-      return
-
-    values = self._values
     keys = self._parse_url(url)
-    final_key = keys.pop()
 
-    for key in keys:
-      if key not in values:
-        values[key] = {}
+    # Partial is okay, because we'll create missing nodes later.
+    nodes = self._get_nodes_by_keys(keys, partial_okay=True)
 
-      values = values[key]
+    # If there is a specified revision, it must exactly match revisions of
+    # the target node, or any of it's parents.
+    if revision is not None:
+      if revision not in [n.revision for n in nodes]:
+        raise RevisionMismatch('%d received, %d current' %
+                               (revision, self.revision()))
 
-    if final_key not in values or values[final_key] != update_value:
-      self._revision += 1
-      values[final_key] = copy.deepcopy(update_value)
+    # Test to see if new value is a change.
+    try:
+      if self.get(url) == update_value:
+        return
+    except UnknownUrl:
+      pass
 
-      # Notify listeners.
-      logging.debug('Status revision %d: %s -> %s',
-                    self.revision(), update_value, url)
-      self._notify()
+    # We've decided we can set, update existing revisions.
+    new_revision = self.revision() + 1
+    for node in nodes:
+      node.revision = new_revision
+
+    # Ensure any missing predecessor nodes are present.
+    for i in xrange(len(keys)-1):
+      key, node = keys[i], nodes[i]
+      if not key in node.children():
+        nodes.append(node.add_child(key, {}))
+
+    # Remove the node we are replacing, if present.
+    if len(nodes) > len(keys):
+      nodes.pop()
+
+    # Nodes contains the root node, which has no matching key, but is
+    # missing the final node, which does.
+    assert len(keys) == len(nodes)
+
+    nodes[-1].add_child(keys[-1], update_value)
+
+    # Notify listeners.
+    logging.debug('Status revision %d: %s -> %s',
+                  self.revision(), update_value, url)
+
+    self._notify()
 
   def deferred(self, revision=None, url='status://'):
     """Create a deferred that's called when status is next updated.
@@ -136,21 +206,38 @@ class Status(object):
     """Inverse of _parse_url."""
     return PREFIX + '/'.join(keys)
 
-  def _get_values_by_keys(self, keys):
+  def _get_node_by_keys(self, keys):
     """Look up the raw values for a url.
 
     Raises:
       UnknownUrl if any key doesn't exist.
     """
-    values = self._values
+    return self._get_nodes_by_keys(keys)[-1]
+
+  def _get_nodes_by_keys(self, keys, partial_okay=False):
+    """Look up the raw values for a url.
+
+    Raises:
+      UnknownUrl if any key doesn't exist.
+    """
+    node = self._node
+    result = [node]
 
     for key in keys:
       try:
-        values = values[key]
-      except (KeyError, TypeError):
-        raise UnknownUrl()
+        if not node.is_dict():
+          # If we try to step into a node without a dict parent, it's a BadUrl.
+          raise BadUrl(self._join_url(keys))
 
-    return values
+        node = node.child(key)
+        result.append(node)
+      except KeyError:
+        if partial_okay:
+          break
+        else:
+          raise UnknownUrl(self._join_url(keys))
+
+    return result
 
   def _expand_wildcards(self, url):
     """Return a list of URLs which exist and match url with wildcards expanded.
@@ -174,8 +261,8 @@ class Status(object):
       except ValueError:
         # There is no wildcard in the URL.
         try:
-          self._get_values_by_keys(keys)
-        except UnknownUrl:
+          self._get_node_by_keys(keys)
+        except (UnknownUrl, BadUrl):
           # URL doesn't exist, skip it.
           continue
 
@@ -186,19 +273,19 @@ class Status(object):
       pre_wildcard_keys = keys[:index]
       post_wildcard_keys = keys[index+1:]
       try:
-        wildcard_node = self._get_values_by_keys(pre_wildcard_keys)
+        wildcard_node = self._get_node_by_keys(pre_wildcard_keys)
       except UnknownUrl:
         # partial URL doesn't exist, skip it.
         continue
 
-      try:
-        for expanded_key in wildcard_node.keys():
-          urls.append(self._join_url(pre_wildcard_keys +
-                                     [expanded_key] +
-                                     post_wildcard_keys))
-      except AttributeError:
+      if not wildcard_node.is_dict():
         # The wildcard_node isn't a dictionary, can't expand it.
         continue
+
+      for expanded_key in wildcard_node.children():
+        urls.append(self._join_url(pre_wildcard_keys +
+                                   [expanded_key] +
+                                   post_wildcard_keys))
 
     return result
 
@@ -235,10 +322,20 @@ class Status(object):
       defer.Deferred.__init__(self)
       self._status = status
       self._url = url
-      self._value = self._status.get_matching_values(self._url)
+      self._watching = self._find_revisions()
 
     def changed(self):
-      return self._value != self._status.get_matching_values(self._url)
+      return self._watching != self._find_revisions()
 
     def issue_callback(self):
       self.callback(self._status.get_matching_urls(self._url))
+
+    def _find_revisions(self):
+      result = {}
+      urls = self._status.get_matching_urls(self._url)
+      for url in urls:
+        try:
+          result[url] = self._status.revision(url)
+        except UnknownUrl:
+          result[url] = None
+      return result

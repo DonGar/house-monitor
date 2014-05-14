@@ -136,7 +136,7 @@ class Status(Resource):
 
     def _send_update(value):
       response_value = {
-          'revision': self.status.revision(),
+          'revision': self.status.revision(status_url),
           'status': self.status.get(status_url),
           'url': os.path.join(str(request.URLPath()), *request.postpath)
       }

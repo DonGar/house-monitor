@@ -214,6 +214,36 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     d.addCallback(rendered)
     return d
 
+  def test_status_path_revision_updated_other_path(self):
+    status = self._create_status(
+        {
+            'int': 2,
+            'sub1': {'sub2': {}}
+        }
+    )
+
+    status.set('status://unrelated', 42)
+    self.assertEqual(status.revision(), 2)
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = self._dummy_request_get(path=['sub1', 'sub2'])
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written),
+                        '{\n'
+                        '    "revision": 1, \n'
+                        '    "status": {}, \n'
+                        '    "url": "http://example/status/sub1/sub2"\n'
+                        '}')
+    d.addCallback(rendered)
+    return d
+
   def test_status_path_revision_path_not_modified(self):
     status = self._create_status(
         {
@@ -330,6 +360,39 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
       self.assertEquals(request.responseCode, 200)
       self.assertEquals(''.join(request.written), 'Success')
       self.assertEquals(status.get(), {'web': {'inserted': 'value'}})
+
+    d.addCallback(rendered)
+    return d
+
+  def test_post_revision_udpated(self):
+    monitor.adapter.WebAdapter._test_clear_state()
+    status = self._create_status({})
+
+    # Create a web adapter for /web.
+    monitor.adapter.WebAdapter(status, 'status://web', 'web', {})
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # Update a different part of the status.
+    status.set('status://foo/bar', 'unrelated_value')
+
+    self.assertEqual(status.revision('status://web'), 2)
+    self.assertEqual(status.revision(), 3)
+
+    # The request to make.
+    request = self._dummy_request_put(path=['web'],
+                                      content='{"inserted": "value" }',
+                                      revision=2)
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+
+    def rendered(_):
+      self.assertEquals(request.responseCode, 200)
+      self.assertEquals(''.join(request.written), 'Success')
+      self.assertEquals(status.get(), {'web': {'inserted': 'value'},
+                                       'foo': {'bar': 'unrelated_value'}})
 
     d.addCallback(rendered)
     return d
