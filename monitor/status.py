@@ -69,6 +69,12 @@ class _Node(object):
     self._content[key] = new_node
     return new_node
 
+  def remove_child(self, key):
+    assert isinstance(key, basestring)
+    assert self.is_dict()
+
+    del self._content[key]
+
   def child(self, key):
     assert isinstance(key, basestring)
     assert self.is_dict()
@@ -166,7 +172,10 @@ class Status(object):
     # missing the final node, which does.
     assert len(keys) == len(nodes)
 
-    nodes[-1].add_child(keys[-1], update_value)
+    if update_value is None:
+      nodes[-1].remove_child(keys[-1])
+    else:
+      nodes[-1].add_child(keys[-1], update_value)
 
     # Notify listeners.
     logging.debug('Status revision %d: %s -> %s',

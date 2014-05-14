@@ -96,6 +96,20 @@ class TestNode(monitor.util.test_base.TestBase):
     self.assertEqual(node.child('bar').revision, node.revision)
     self.assertEqual(node.children(), ['foo', 'bar'])
 
+    # Remove a child.
+    node.remove_child('bar')
+    self.assertEqual(node.to_value(), {'foo': 1})
+    self.assertEqual(node.child('foo').to_value(), 1)
+    self.assertEqual(node.child('foo').revision, node.revision)
+    self.assertEqual(node.children(), ['foo'])
+
+    # Remove a non-existent child.
+    self.assertRaises(KeyError, node.remove_child, 'bar')
+    self.assertEqual(node.to_value(), {'foo': 1})
+    self.assertEqual(node.child('foo').to_value(), 1)
+    self.assertEqual(node.child('foo').revision, node.revision)
+    self.assertEqual(node.children(), ['foo'])
+
     # Try to fetch a non-existent child.
     self.assertRaises(KeyError, node.child, 'nonexistant')
 
@@ -252,6 +266,32 @@ class TestStatus(monitor.util.test_base.TestBase):
     self.assertEqual(status.get('status://nest1'),
                      {'nest2': {'nest3': 'foo'}})
     self.assertEqual(status.revision(), 5)
+
+    # Clear an existing value.
+    status.set('status://dict/sub1', None)
+    self.assertEqual(status.get('status://dict'),
+                     {'sub2': 4})
+    self.assertEqual(status.revision(), 6)
+
+    # Clear a sub-tree
+    status.set('status://nest1', None)
+    self.assertEqual(status.get('status://'),
+                     {'dict': {'sub2': 4},
+                      'int': 10,
+                      'list': [],
+                      'list2': []})
+    self.assertEqual(status.revision(), 7)
+
+    # Clear a nonexitent value
+    status.set('status://nonexistent', None)
+    self.assertEqual(status.get('status://'),
+                     {'dict': {'sub2': 4},
+                      'int': 10,
+                      'list': [],
+                      'list2': []})
+    self.assertEqual(status.revision(), 7)
+
+
 
   def test_nested_revisions(self):
     """Test Status.revision() handles nested revision numbers."""
