@@ -184,7 +184,16 @@ class Status(object):
        the URL passed in (wildcards accepted),
     """
     deferred = self._Deferred(self, url)
-    self._save_deferred(deferred, revision)
+
+    if revision is not None and revision != self.revision(url):
+      # Send event right away.
+      deferred.issue_callback()
+    else:
+      # Save it off, so we can send it later.
+      self._notifications.add(deferred)
+
+
+
     return deferred
 
   def _validate_url(self, url):
@@ -288,14 +297,6 @@ class Status(object):
                                    post_wildcard_keys))
 
     return result
-
-  def _save_deferred(self, deferred, revision):
-    if revision is not None and revision != self.revision():
-      # Send event right away.
-      deferred.issue_callback()
-    else:
-      # Save it off, so we can send it later.
-      self._notifications.add(deferred)
 
   def _notify(self):
     """Look for deferreds that need to fire."""

@@ -648,6 +648,32 @@ class TestStatusDeferred(monitor.util.test_base.TestBase):
     status.set('status://int', 3)
     self.assertFalse(d.called)
 
+  def test_url_parent_revision(self):
+    status = self._create_status({'foo': 1, 'bar': 2})
+    status.set('status://foo', 3)
+
+    self.assertEqual(status.revision(), 2)
+    self.assertEqual(status.revision('status://bar'), 1)
+
+    # Ask for a specialized notification with the parents revision, not
+    # the revision of the url.
+    d = status.deferred(revision=2, url='status://bar')
+    status.set('status://int', 3)
+    self.assertTrue(d.called)
+
+  def test_url_parent_different_revision(self):
+    status = self._create_status({'foo': 1, 'bar': 2})
+    status.set('status://foo', 3)
+
+    self.assertEqual(status.revision(), 2)
+    self.assertEqual(status.revision('status://bar'), 1)
+
+    # Ask for a specialized notification with the parents revision, not
+    # the revision of the url.
+    d = status.deferred(revision=1, url='status://bar')
+    status.set('status://int', 3)
+    self.assertFalse(d.called)
+
   def test_non_existent_url(self):
     status = self._create_status()
 

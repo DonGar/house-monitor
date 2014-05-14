@@ -22,8 +22,8 @@ class TestWebResourcesButton(monitor.util.test_base.TestBase):
 
     # Create and validate the response.
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written), 'Success')
       # Test pushed time was set. Any current time is > 100.
       self.assertTrue(status.get(time_uri) > 100)
 
@@ -111,8 +111,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # Create and validate the response.
     d = self._render(resource, request)
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written),
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written),
                         '{\n'
                         '    "revision": 1, \n'
                         '    "status": {\n'
@@ -135,8 +135,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # Create and validate the response.
     d = self._render(resource, request)
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written),
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written),
                         '{\n'
                         '    "revision": 1, \n'
                         '    "status": {\n'
@@ -161,6 +161,51 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     self._add_assert_timeout(d)
     return d
 
+  def test_status_wrong_version_nested_parent(self):
+    status = self._create_status({'int': 2, 'sub1': 'foo'})
+    status.set('status://int', 3)
+
+    self.assertEqual(status.revision('status://'), 2)
+    self.assertEqual(status.revision('status://sub1'), 1)
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+    # The request to make.
+    request = self._dummy_request_get(path=['sub1'], revision=2)
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    def rendered(_):
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written),
+                        '{\n'
+                        '    "revision": 1, \n'
+                        '    "status": "foo", \n'
+                        '    "url": "http://example/status/sub1"\n'
+                        '}')
+    d.addCallback(rendered)
+    return d
+
+  def test_status_current_version_nested(self):
+    status = self._create_status({'int': 2, 'sub1': 'foo'})
+    status.set('status://int', 3)
+
+    self.assertEqual(status.revision('status://'), 2)
+    self.assertEqual(status.revision('status://sub1'), 1)
+
+    # The resource to test.
+    resource = monitor.web_resources.Status(status)
+
+
+    # The request to make.
+    request = self._dummy_request_get(path=['sub1'], revision=1)
+
+    # Create and validate the response.
+    d = self._render(resource, request)
+    self._add_assert_timeout(d)
+    return d
+
   def test_status_current_version_with_update(self):
     status = self._create_status({'int': 2})
 
@@ -173,8 +218,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # Create and validate the response.
     d = self._render(resource, request)
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written),
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written),
                         '{\n'
                         '    "revision": 2, \n'
                         '    "status": {\n'
@@ -204,8 +249,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # Create and validate the response.
     d = self._render(resource, request)
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written),
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written),
                         '{\n'
                         '    "revision": 1, \n'
                         '    "status": {}, \n'
@@ -234,8 +279,8 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     # Create and validate the response.
     d = self._render(resource, request)
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written),
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written),
                         '{\n'
                         '    "revision": 1, \n'
                         '    "status": {}, \n'
@@ -287,9 +332,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     d = self._render(resource, request)
 
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), {'web': {'inserted': 'value'}})
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written), 'Success')
+      self.assertEqual(status.get(), {'web': {'inserted': 'value'}})
 
     d.addCallback(rendered)
     return d
@@ -312,9 +357,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     d = self._render(resource, request)
 
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(),
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written), 'Success')
+      self.assertEqual(status.get(),
                         {'web': {'sub': {'sub2': {'inserted': 'value'}}}})
 
     d.addCallback(rendered)
@@ -357,9 +402,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     d = self._render(resource, request)
 
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), {'web': {'inserted': 'value'}})
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written), 'Success')
+      self.assertEqual(status.get(), {'web': {'inserted': 'value'}})
 
     d.addCallback(rendered)
     return d
@@ -389,9 +434,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     d = self._render(resource, request)
 
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
-      self.assertEquals(status.get(), {'web': {'inserted': 'value'},
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written), 'Success')
+      self.assertEqual(status.get(), {'web': {'inserted': 'value'},
                                        'foo': {'bar': 'unrelated_value'}})
 
     d.addCallback(rendered)
@@ -416,9 +461,9 @@ class TestWebResourcesStatus(monitor.util.test_base.TestBase):
     d = self._render(resource, request)
 
     def rendered(_):
-      self.assertEquals(request.responseCode, 412)  # Precondition Failure
-      self.assertEquals(''.join(request.written), 'Revision mismatch.')
-      self.assertEquals(status.get(), {'web': {}})
+      self.assertEqual(request.responseCode, 412)  # Precondition Failure
+      self.assertEqual(''.join(request.written), 'Revision mismatch.')
+      self.assertEqual(status.get(), {'web': {}})
 
     d.addCallback(rendered)
     return d
@@ -441,8 +486,8 @@ class TestWebResourcesRestart(monitor.util.test_base.TestBase):
     # Create and validate the response.
     d = self._render(resource, request)
     def rendered(_):
-      self.assertEquals(request.responseCode, 200)
-      self.assertEquals(''.join(request.written), 'Success')
+      self.assertEqual(request.responseCode, 200)
+      self.assertEqual(''.join(request.written), 'Success')
       mocked.assert_called_once_with()
       patch.stop()
     d.addCallback(rendered)
