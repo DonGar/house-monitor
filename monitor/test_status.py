@@ -270,25 +270,27 @@ class TestStatus(monitor.util.test_base.TestBase):
     # Clear an existing value.
     status.set('status://dict/sub1', None)
     self.assertEqual(status.get('status://dict'),
-                     {'sub2': 4})
+                     {'sub1': None, 'sub2': 4})
     self.assertEqual(status.revision(), 6)
 
     # Clear a sub-tree
     status.set('status://nest1', None)
     self.assertEqual(status.get('status://'),
-                     {'dict': {'sub2': 4},
+                     {'dict': {'sub1': None, 'sub2': 4},
                       'int': 10,
                       'list': [],
-                      'list2': []})
+                      'list2': [],
+                      'nest1': None})
     self.assertEqual(status.revision(), 7)
 
     # Clear a nonexitent value
     status.set('status://nonexistent', None)
     self.assertEqual(status.get('status://'),
-                     {'dict': {'sub2': 4},
+                     {'dict': {'sub1': None, 'sub2': 4},
                       'int': 10,
                       'list': [],
-                      'list2': []})
+                      'list2': [],
+                      'nest1': None})
     self.assertEqual(status.revision(), 7)
 
 

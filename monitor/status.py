@@ -172,10 +172,7 @@ class Status(object):
     # missing the final node, which does.
     assert len(keys) == len(nodes)
 
-    if update_value is None:
-      nodes[-1].remove_child(keys[-1])
-    else:
-      nodes[-1].add_child(keys[-1], update_value)
+    nodes[-1].add_child(keys[-1], update_value)
 
     # Notify listeners.
     logging.debug('Status revision %d: %s -> %s',
