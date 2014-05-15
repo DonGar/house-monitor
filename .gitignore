@@ -8,6 +8,7 @@ lib/
 include/
 local/
 *.sublime-workspace
+.idea/
 
 # Specific config files for this project.
 config.json
