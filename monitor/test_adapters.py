@@ -13,37 +13,37 @@ import monitor.util.test_base
 
 class TestFileAdapter(monitor.util.test_base.TestBase):
 
-  def test_load_default_filename(self):
+  def test_default_filename(self):
     status = self._create_status({})
     url = 'status://foo'
     name = 'foo'
     json = {'type': 'file'}
 
-    UNIQUE = object()
+    monitor.adapter.BASE_DIR = '/tmp'
 
-    with mock.patch('monitor.adapter.FileAdapter.parse_config_file',
-                    return_value=UNIQUE,
-                    autospec=True) as m_parser:
-      with mock.patch('monitor.status.Status.set', autospec=True) as m_set:
+    # We don't test anything but the file name.
+    with mock.patch('monitor.adapter.FileAdapter.setup_notify', autospec=True):
+      with mock.patch('monitor.adapter.FileAdapter.update_config_file',
+                      autospec=True):
         a = monitor.adapter.FileAdapter(status, url, name, json)
-        m_parser.assert_called_once_with(a, 'foo.json')
-        m_set.assert_called_once_with(status, 'status://foo', UNIQUE)
+        self.assertEqual(a.filename, '/tmp/foo.json')
 
-  def test_load_explicit_filename(self):
+
+  def test_explicit_filename(self):
     status = self._create_status({})
     url = 'status://foo'
     name = 'foo'
     json = {'type': 'file', 'filename': 'bar.json'}
 
-    UNIQUE = object()
+    monitor.adapter.BASE_DIR = '/tmp'
 
-    with mock.patch('monitor.adapter.FileAdapter.parse_config_file',
-                    return_value=UNIQUE,
-                    autospec=True) as m_parser:
-      with mock.patch('monitor.status.Status.set', autospec=True) as m_set:
+    # We don't test anything but the file name.
+    with mock.patch('monitor.adapter.FileAdapter.setup_notify',
+                    autospec=True):
+      with mock.patch('monitor.adapter.FileAdapter.update_config_file',
+                      autospec=True):
         a = monitor.adapter.FileAdapter(status, url, name, json)
-        m_parser.assert_called_once_with(a, 'bar.json')
-        m_set.assert_called_once_with(status, 'status://foo', UNIQUE)
+        self.assertEqual(a.filename, '/tmp/bar.json')
 
 
 class TestWebAdapter(monitor.util.test_base.TestBase):
