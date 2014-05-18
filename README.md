@@ -1,6 +1,6 @@
 #house-monitor
 
-Twisted web server used to inside my house. Mostly a learning exercise to help with home automation. 
+Twisted web server used to inside my house. Mostly a learning exercise to help with home automation.
 
 
 The basic design is to have a JSON data structure that represents the state of the house. This data structure contains
@@ -20,7 +20,7 @@ same structure.
 In short:
 
     run_server -setup
-    
+
 In long:
 
     TODO: Write this.
@@ -69,7 +69,7 @@ An example:
 ###Adapters
 
   Each adapter entry looks like:
-  
+
     "<name>": {
       "type": "<type>",
       <type specific values, if any>
@@ -229,8 +229,7 @@ There are many types of actions:
    * wol - Issue a Wake On Lan request.
      * mac - Mac address to attempt to wake.
    * ping - Ping a host, and store result.
-     * hostname - Hostname to ping.
-     * dest - Store true or false based on ping success.
+     * host - Status URI of the host component to ping. Result stored in <host>/up as a boolean. The result is NOT immediately available.
    * email - Send email.
      * to - Address to send email too.
      * subject - Optional subject string.

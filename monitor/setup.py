@@ -18,7 +18,6 @@ import monitor.snmp_adapter
 import monitor.sonos_adapter
 import monitor.rules_engine
 import monitor.status
-import monitor.up
 import monitor.web_resources
 
 BASE_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
@@ -93,8 +92,6 @@ def setup():
 
   # Instantiating the engine sets up the deferreds needed to keep it running.
   monitor.rules_engine.RulesEngine(status, action_manager)
-
-  monitor.up.setup(status)
 
   # Assemble the factory for our web server.
   # Serve the standard static web content, overlaid with our dynamic content

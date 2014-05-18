@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import logging
+import os
 import shutil
 import tempfile
 import urlparse
@@ -8,6 +9,7 @@ import urlparse
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet import task
+from twisted.internet import threads
 
 import monitor.status
 import monitor.util.action
@@ -146,12 +148,16 @@ class ActionManager(object):
 
 
   def _handle_ping_action(self, action):
-    logging.debug('Action: Pinging %s -> %s',
-                  action['hostname'], action['dest'])
+    # From host component, find hostname, and URI of flag to set.
+    hostname = os.path.basename(action['host'])
+    flag_uri = os.path.join(action['host'], 'up')
 
-    result = monitor.util.ping.ping(action['hostname'])
-    self.status.set(action['dest'], result)
+    logging.debug('Action: Pinging %s', hostname)
 
+    # Do the ping in a thread to avoid blocking our main loop.
+    d = threads.deferToThread(monitor.util.ping.ping, hostname)
+    d.addCallback(lambda value: self.status.set(flag_uri, value))
+    return d
 
   # pylint: disable=R0914
   def _handle_email_action(self, action):

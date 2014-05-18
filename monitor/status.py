@@ -179,6 +179,7 @@ class Status(object):
                   self.revision(), update_value, url)
 
     self._notify()
+    return update_value
 
   def deferred(self, revision=None, url='status://'):
     """Create a deferred that's called when status is next updated.

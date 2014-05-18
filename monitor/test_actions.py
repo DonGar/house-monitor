@@ -22,6 +22,13 @@ STATUS_VALUES = {
     'url': 'http://some/url',
 
     'value': 'status_value',
+
+    'adapter': {
+        'host': {
+            'target': {}
+        }
+
+    }
 }
 
 
@@ -201,20 +208,27 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
 
   def test_handle_action_ping(self):
     """Verify handle_action with JSON ping action nodes."""
+    RESULT = 'ping_result'
     status, action_manager = self._setup_action_manager()
 
     action_ping = {
         'action': 'ping',
-        'hostname': 'foo',
-        'dest': 'status://target',
+        'host': 'status://adapter/host/target',
     }
 
     with mock.patch('monitor.util.ping.ping',
-                    return_value='ping_result',
+                    return_value=RESULT,
                     autospec=True) as mocked:
-      action_manager.handle_action(action_ping)
-      mocked.assert_called_once_with('foo')
-      self.assertEqual(status.get('status://target'), 'ping_result')
+
+      def verify_result(value):
+        mocked.assert_called_once_with('target')
+        self.assertEqual(status.get('status://adapter/host/target/up'),
+                         RESULT)
+        self.assertEqual(value, RESULT)
+
+      d = action_manager.handle_action(action_ping)
+      d.addCallback(verify_result)
+      return d
 
   def test_handle_action_email_default(self):
     """Verify handle_action with JSON email action nodes."""
