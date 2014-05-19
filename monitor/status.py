@@ -290,7 +290,7 @@ class Status(object):
       post_wildcard_keys = keys[index+1:]
       try:
         wildcard_node = self._get_node_by_keys(pre_wildcard_keys)
-      except UnknownUrl:
+      except (UnknownUrl, BadUrl):
         # partial URL doesn't exist, skip it.
         continue
 

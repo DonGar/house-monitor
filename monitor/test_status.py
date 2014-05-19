@@ -206,6 +206,9 @@ class TestStatus(monitor.util.test_base.TestBase):
     _validate_result('status://*/foo',
                      ['status://match1/foo', 'status://match2/foo'],
                      {'match1': {'foo': 1}, 'match2': {'foo': 2}})
+    _validate_result('status://*/foo/*',
+                     [],
+                     {})
     _validate_result('status://*/bar',
                      ['status://solo1/bar'],
                      {'solo1': {'bar': 3}})
