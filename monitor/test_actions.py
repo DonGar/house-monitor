@@ -27,7 +27,12 @@ STATUS_VALUES = {
         'host': {
             'target': {}
         }
+    },
 
+    'second_adapter': {
+        'host': {
+            'target': {}
+        }
     }
 }
 
@@ -224,7 +229,32 @@ class TestActionHandlers(monitor.util.test_base.TestBase):
         mocked.assert_called_once_with('target')
         self.assertEqual(status.get('status://adapter/host/target/up'),
                          RESULT)
-        self.assertEqual(value, RESULT)
+        self.assertEqual(value, [(True, RESULT)])
+
+      d = action_manager.handle_action(action_ping)
+      d.addCallback(verify_result)
+      return d
+
+  def test_handle_action_ping_multiple(self):
+    """Verify handle_action with JSON ping action nodes."""
+    RESULT = 'ping_result'
+    status, action_manager = self._setup_action_manager()
+
+    action_ping = {
+        'action': 'ping',
+        'host': 'status://*/host/*',
+    }
+
+    with mock.patch('monitor.util.ping.ping',
+                    return_value=RESULT,
+                    autospec=True) as mocked:
+
+      def verify_result(value):
+        self.assertEqual(mocked.mock_calls,
+                         [mock.call('target'), mock.call('target')])
+        self.assertEqual(status.get('status://adapter/host/target/up'),
+                         RESULT)
+        self.assertEqual(value, [(True, RESULT), (True, RESULT)])
 
       d = action_manager.handle_action(action_ping)
       d.addCallback(verify_result)

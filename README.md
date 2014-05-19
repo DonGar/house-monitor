@@ -229,7 +229,7 @@ There are many types of actions:
    * wol - Issue a Wake On Lan request.
      * mac - Mac address to attempt to wake.
    * ping - Ping a host, and store result.
-     * host - Status URI of the host component to ping. Result stored in <host>/up as a boolean. The result is NOT immediately available.
+     * host - Status URI of the host component to ping. Result stored in <host>/up as a boolean. The result is NOT immediately available. Host can contain wildcards in it's path.
    * email - Send email.
      * to - Address to send email too.
      * subject - Optional subject string.

@@ -148,16 +148,42 @@ class ActionManager(object):
 
 
   def _handle_ping_action(self, action):
-    # From host component, find hostname, and URI of flag to set.
-    hostname = os.path.basename(action['host'])
-    flag_uri = os.path.join(action['host'], 'up')
+    host_uris = self.status.get_matching_urls(action['host'])
 
-    logging.debug('Action: Pinging %s', hostname)
+    # This method runs instead the thread.
+    def handle_ping(ping_method, host_uri):
+      """Method to run inside the ping thread."""
+      hostname = os.path.basename(host_uri)
+      host_revision = self.status.revision(host_uri)
 
-    # Do the ping in a thread to avoid blocking our main loop.
-    d = threads.deferToThread(monitor.util.ping.ping, hostname)
-    d.addCallback(lambda value: self.status.set(flag_uri, value))
-    return d
+      logging.debug('Action: Pinging %s', hostname)
+      result = ping_method(hostname)
+
+      return host_uri, host_revision, result
+
+    def handle_result(value):
+      """Method to run in main thread with ping thread results."""
+      host_uri, host_revision, result = value
+
+      flag_uri = os.path.join(host_uri, 'up')
+      self.status.set(flag_uri, result, revision=host_revision)
+      return result
+
+    thread_deferreds = []
+    for component_uri in host_uris:
+      # Since we background the ping, use host_revision to make sure nothing
+      # happens like someone removing the host component under us.
+
+      # Do the ping in a thread to avoid blocking our main loop.
+      # Passing in the ping method is an ugly hack to allow it to be mocked
+      # for testing.
+      d = threads.deferToThread(handle_ping,
+                                monitor.util.ping.ping, component_uri)
+      d.addCallback(handle_result)
+      thread_deferreds.append(d)
+
+    # Return a deferred that shows all requested pings have completed.
+    return defer.DeferredList(thread_deferreds)
 
   # pylint: disable=R0914
   def _handle_email_action(self, action):
