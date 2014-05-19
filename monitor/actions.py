@@ -166,7 +166,12 @@ class ActionManager(object):
       host_uri, host_revision, result = value
 
       flag_uri = os.path.join(host_uri, 'up')
-      self.status.set(flag_uri, result, revision=host_revision)
+      try:
+        self.status.set(flag_uri, result, revision=host_revision)
+      except monitor.status.RevisionMismatch:
+        # If the revision doesn't match, throw away ping result.
+        pass
+
       return result
 
     thread_deferreds = []
